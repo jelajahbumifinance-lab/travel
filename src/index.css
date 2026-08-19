@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   TOKEN WARNA — CSS variable, dibaca tailwind.config.js lewat
+   rgb(var(--x) / <alpha-value>). Ganti nilai di sini = ganti
+   warna di SELURUH aplikasi, termasuk dark mode, tanpa perlu
+   sentuh satu pun file halaman.
+
+   Dikalibrasi dari palet logo JBI: oranye (wordmark "Jelajah
+   Bumi") sebagai warna interaktif utama, teal (wordmark
+   "International" & globe) sebagai aksen kedua statis — lihat
+   token `teal` di tailwind.config.js.
+   ============================================================ */
+:root {
+  --paper: 250 249 246;         /* #FAF9F6 — putih hangat lembut */
+  --paper-raised: 255 255 255;  /* #FFFFFF — permukaan kartu */
+  --ink: 22 35 42;              /* #16232A — teks utama */
+  --ink-soft: 97 113 122;       /* #61717A — teks sekunder */
+  --rule: 227 233 233;          /* #E3E9E9 — garis batas tipis */
+
+  /* Oranye logo (#F0791A) terlalu terang untuk teks/tombol solid ber-teks
+     putih (kontras di bawah AA) — dipakai deep-orange yang sudah diukur
+     agar tetap terbaca, oranye murni disisakan untuk elemen dekoratif. */
+  --accent: 234 88 12;            /* #EA580C — latar tombol solid */
+  --accent-hover: 194 65 12;      /* #C2410C — latar tombol solid, hover */
+  --accent-text: 194 65 12;       /* #C2410C — sebagai teks/tautan/garis tepi */
+  --accent-soft: 255 237 220;     /* #FFEDDC — latar tombol sekunder, menu aktif */
+  --accent-soft-hover: 254 220 187; /* #FEDCBB */
+}
+html.dark {
+  --paper: 13 21 23;              /* #0D1517 — latar halaman */
+  --paper-raised: 20 31 34;       /* #141F22 — kartu, sidebar, header */
+  --ink: 233 243 243;             /* #E9F3F3 */
+  --ink-soft: 147 166 171;        /* #93A6AB */
+  --rule: 40 56 60;                /* #28383C */
+
+  /* Mode gelap: oranye dinaikkan satu tingkat kecerahan supaya tetap menyala
+     di atas latar gelap tanpa terasa menyilaukan. */
+  --accent: 249 115 22;           /* #F97316 — latar tombol solid */
+  --accent-hover: 234 88 12;      /* #EA580C — latar tombol solid, hover */
+  --accent-text: 251 146 60;      /* #FB923C — teks/tautan/garis tepi/fokus */
+  --accent-soft: 59 39 22;        /* #3B2716 — latar tombol sekunder, menu aktif */
+  --accent-soft-hover: 74 48 26;  /* #4A301A */
+}
+
+html { font-size: 14px; }
+
+html, body, #root { height: 100%; }
+body {
+  font-family: 'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.font-display { font-family: 'Century Gothic', 'Segoe UI Semibold', sans-serif; font-weight: 700; letter-spacing: -0.01em; }
+.tabular { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+.card {
+  background: rgb(var(--paper-raised));
+  border: 1px solid rgb(var(--rule));
+  box-shadow: 0 2px 4px rgba(22,35,42,0.03), 0 12px 32px rgba(22,35,42,0.06);
+}
+html.dark .card { box-shadow: none; }
+
+.field {
+  background: rgb(var(--paper-raised));
+  border: 1px solid rgb(var(--rule));
+  color: rgb(var(--ink));
+}
+.field:focus {
+  outline: none;
+  border-color: rgb(var(--accent-text));
+  box-shadow: 0 0 0 3px rgb(var(--accent-text) / 0.18);
+}
+.field::placeholder { color: rgb(var(--ink-soft)); opacity: .7; }
+
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid rgb(var(--accent-text));
+  outline-offset: 2px;
+}
+
+/* Navigasi sidebar — list vertikal dengan highlight lembut untuk item aktif */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgb(var(--ink-soft));
+  transition: background .15s ease, color .15s ease;
+}
+.sidebar-link:hover { background: rgb(var(--accent-text) / 0.08); color: rgb(var(--ink)); }
+.sidebar-link.active { background: rgb(var(--accent-soft)); color: rgb(var(--accent-text)); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+@media print {
+  @page { margin: 0; }
+  body { padding: 14mm 12mm !important; }
+  aside, header.md\:hidden { display: none !important; }
+  body, main { background: #fff !important; color: #000 !important; }
+  main { padding: 0 !important; max-width: none !important; }
+  .card { box-shadow: none !important; border-color: #ccc !important; }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(22,35,42,0.15); border-radius: 8px; }
+html.dark ::-webkit-scrollbar-thumb { background: rgba(233,243,243,0.15); }
+
+/* Kerapatan tabel — satu tuas untuk seluruh halaman. */
+.card table th,
+.card table td { padding: 0.5rem 0.75rem; }
+.card table td[colspan] { padding: 2.25rem 1rem; }
+
+/* Status — satu bentuk untuk semua halaman, hanya warnanya yang berbeda. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .02em;
+  padding: 4px 11px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+.pill-ok   { color: #0A6670; background: #D6F3F1; }  /* lunas, disetujui, aktif — teal */
+.pill-info { color: #C2410C; background: #FFEDDC; }  /* netral bermakna — oranye lembut */
+html.dark .pill-info { color: #FB923C; background: #3B2716; }
+html.dark .pill-ok { color: #5EDCD6; background: #0B4F57; }
+.pill-warn { color: #B45309; background: #FEF3C7; }  /* menunggu, dicicil */
+.pill-bad  { color: #B91C1C; background: #FEE2E2; }  /* ditolak, lewat tempo */
+.pill-mute { color: rgb(var(--ink-soft)); background: rgb(var(--rule)); } /* nonaktif, belum */
+
+.pill-tombol { cursor: pointer; transition: filter .15s ease; }
+.pill-tombol:hover { filter: brightness(0.94); }
+
+/* Aksi — tombol dalam tabel, selalu berupa kata. */
+.aksi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: background .15s ease, color .15s ease;
+}
+.aksi:disabled { opacity: .45; cursor: not-allowed; }
+
+.grup-aksi {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: max-content;
+  margin-inline: auto;
+}
+
+.aksi-ikon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.card table td:has(> .grup-aksi) { width: 1%; }
+
+.aksi-netral { color: rgb(var(--accent-text)); background: rgb(var(--accent-soft)); }
+.aksi-netral:hover:not(:disabled) { background: rgb(var(--accent-soft-hover)); }
+
+.aksi-utama { color: #fff; background: #0D8088; }
+.aksi-utama:hover:not(:disabled) { background: #0A6670; }
+
+.aksi-bahaya { color: #B91C1C; background: #FEE2E2; }
+.aksi-bahaya:hover:not(:disabled) { background: #FECACA; }
+html.dark .aksi-bahaya { color: #F87171; background: rgba(220,38,38,.18); }
+html.dark .aksi-bahaya:hover:not(:disabled) { background: rgba(220,38,38,.30); }
