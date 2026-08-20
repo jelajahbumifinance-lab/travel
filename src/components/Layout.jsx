@@ -30,6 +30,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/agen', label: 'Agen & Mitra', Icon: IconAgen },
       { to: '/komisi', label: 'Komisi Agen', Icon: IconKomisi },
+      { to: '/crm-agen', label: 'CRM Agen', Icon: IconLeads },
     ],
   },
   {
