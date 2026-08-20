@@ -8,17 +8,20 @@ import { BrandIcon, BrandWordmark } from '../components/BrandMark';
  * Pendaftaran mandiri agen/mitra — dua langkah, sama seperti pola
  * pendaftaran mandiri wali murid di OSB Finance:
  *   1. Buat akun (email + password)
- *   2. Lengkapi data (nama, no. HP) -> profiles dibuat dengan is_active=false
+ *   2. Lengkapi data (nama, no. HP) -> profiles dibuat dengan is_active=true
  *
  * Kalau setelah daftar sesi langsung aktif, langkah 2 muncul seketika.
  * Kalau emailnya harus dikonfirmasi dulu, agen diberi tahu untuk cek
  * email, lalu login — begitu login dengan sesi aktif tapi belum punya
  * profil, halaman ini otomatis membuka langkah 2.
  *
- * Akun yang baru dibuat TIDAK bisa langsung dipakai — RLS (lihat
- * sql/0007_daftar_agen_mandiri.sql) hanya mengizinkan insert dengan
- * is_active=false. Admin_keuangan/direktur yang mengaktifkannya lewat
- * menu Undang Staf & Persetujuan.
+ * Akun LANGSUNG aktif tanpa persetujuan admin (lihat
+ * sql/0012_agen_langsung_aktif.sql) — peran agen di RLS cuma bisa
+ * MEMBACA data yang staf sendiri kaitkan ke mereka (jamaah.agen_id
+ * diisi staf, bukan agen), jadi akun yang asal daftar sendiri cuma
+ * mendapat portal kosong sampai staf benar-benar mendaftarkan jamaah
+ * atas nama mereka — risikonya rendah, sepadan dengan menghilangkan
+ * gesekan persetujuan manual.
  */
 export default function DaftarAgen() {
   const navigate = useNavigate();
@@ -93,7 +96,7 @@ export default function DaftarAgen() {
       full_name: profil.full_name.trim(),
       phone: profil.no_hp.trim() || null,
       email: session.user.email,
-      is_active: false,
+      is_active: true,
     });
     setBusy(false);
     if (insertErr) {
@@ -104,6 +107,8 @@ export default function DaftarAgen() {
       );
       return;
     }
+    // Profil baru saja dibuat, AuthContext perlu memuatnya ulang dari awal.
+    setTimeout(() => window.location.assign('/portal-agen'), 1200);
     setBerhasil(true);
   }
 
@@ -120,18 +125,9 @@ export default function DaftarAgen() {
 
         {berhasil ? (
           <div className="text-center py-4">
-            <p className="font-display font-semibold text-teal-700 mb-1">Pendaftaran terkirim</p>
-            <p className="text-sm text-ink-soft">
-              Akun Anda menunggu persetujuan admin keuangan JBI. Anda akan bisa login setelah
-              disetujui — biasanya tidak lama, hubungi JBI kalau sudah lebih dari 1×24 jam.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="mt-5 w-full text-xs font-semibold text-accent-text hover:underline"
-            >
-              Kembali ke halaman Login
-            </button>
+            <p className="font-display font-semibold text-teal-700 mb-1">Pendaftaran berhasil</p>
+            <p className="text-sm text-ink-soft">Akun Anda sudah aktif.</p>
+            <p className="text-xs text-ink-soft mt-3">Membuka portal Anda...</p>
           </div>
         ) : langkah === 1 ? (
           <>
