@@ -1,5 +1,5 @@
-import { useState, Suspense } from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { useState, useMemo, Suspense } from 'react';
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandIcon } from './BrandMark';
 import NotificationBell from './NotificationBell';
@@ -52,8 +52,22 @@ const NAV_GROUPS = [
 
 export default function Layout() {
   const { profile, signOut } = useAuth();
+  const location = useLocation();
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Grup yang dibuka manual oleh pengguna (klik judulnya). Terpisah dari
+  // grup yang otomatis terbuka karena berisi halaman yang sedang aktif —
+  // supaya pindah halaman tidak diam-diam menutup grup lain yang tadi
+  // sengaja dibuka.
+  const [grupTerbuka, setGrupTerbuka] = useState(() => new Set());
+
+  function toggleGrup(label) {
+    setGrupTerbuka((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label); else next.add(label);
+      return next;
+    });
+  }
 
   function toggleDarkMode() {
     const next = !isDark;
@@ -76,30 +90,69 @@ export default function Layout() {
     .map((g) => ({ ...g, items: g.items.filter((item) => !item.roles || item.roles.includes(profile?.role)) }))
     .filter((g) => g.items.length > 0);
 
+  // Grup yang berisi halaman yang sedang dibuka harus terlihat terbuka
+  // dengan sendirinya — kalau tidak, seseorang bisa mendarat di halaman
+  // aktifnya sendiri tapi tidak melihat menunya tersorot di mana pun.
+  const grupAktif = useMemo(() => {
+    const found = visibleGroups.find((g) =>
+      g.items.some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
+    );
+    return found?.label ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   const NavList = ({ onNavigate }) => (
-    <nav className="flex flex-col gap-4">
-      {visibleGroups.map((group, i) => (
-        <div key={group.label || `grup-${i}`}>
-          {group.label && (
-            <p className="text-[10px] font-bold text-ink-soft px-3 mb-1 uppercase tracking-wider">{group.label}</p>
-          )}
-          <div className="flex flex-col gap-1">
-            {group.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={onNavigate}
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                <span className="w-5 flex items-center justify-center shrink-0">
-                  <item.Icon />
-                </span>
-                {item.label}
-              </NavLink>
-            ))}
+    <nav className="flex flex-col gap-1">
+      {visibleGroups.map((group, i) => {
+        // Grup "Utama" (Dashboard, tanpa label) selalu tampil polos, tidak
+        // bisa dilipat — cuma satu tautan, tidak ada yang perlu disembunyikan.
+        if (!group.label) {
+          return group.items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            >
+              <span className="w-5 flex items-center justify-center shrink-0"><item.Icon /></span>
+              {item.label}
+            </NavLink>
+          ));
+        }
+
+        const terbuka = group.label === grupAktif || grupTerbuka.has(group.label);
+        return (
+          <div key={group.label} className="mt-3 first:mt-0">
+            <button
+              type="button"
+              onClick={() => toggleGrup(group.label)}
+              aria-expanded={terbuka}
+              className="w-full flex items-center justify-between px-3 py-1.5 rounded-md2 text-[10px] font-bold text-ink-soft uppercase tracking-wider hover:bg-accent-soft hover:text-accent-text"
+            >
+              {group.label}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                className={`w-2.5 h-2.5 shrink-0 transition-transform ${terbuka ? 'rotate-90' : ''}`}>
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+            {terbuka && (
+              <div className="flex flex-col gap-1 mt-1">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onNavigate}
+                    className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                  >
+                    <span className="w-5 flex items-center justify-center shrink-0"><item.Icon /></span>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </nav>
   );
 
