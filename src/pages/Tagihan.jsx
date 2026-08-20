@@ -154,25 +154,33 @@ export default function Tagihan() {
   // ---- Daftarkan jamaah ----
   function openDaftar(prefill) {
     setModeJamaahBaru(true);
+    // Paket yang datang dari prefill (Leads/CRM Agen) langsung disetel ke
+    // paket_id, tidak lewat pilihPaket() — jadi total_tagihan tidak ikut
+    // terisi otomatis dari harga_default kalau tidak disamakan di sini juga.
+    const paketPrefill = prefill?.paket_id ? paketList.find((p) => p.id === prefill.paket_id) : null;
     setDaftarForm({
       jamaah_id: '', nama: '', nik: '', no_hp: '', agen_id: '', paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '',
       ...prefill,
+      total_tagihan: paketPrefill ? formatRibuan(String(paketPrefill.harga_default)) : (prefill?.total_tagihan || ''),
     });
     setDaftarError('');
     setShowDaftar(true);
   }
 
-  // Datang dari halaman Leads — "Daftarkan sebagai Jamaah" membawa data
-  // lead lewat state router, bukan query string (supaya tidak nyangkut di
-  // riwayat/bookmark). Dibersihkan lagi lewat replace supaya refresh atau
-  // tombol kembali browser tidak diam-diam membuka modal ini lagi.
+  // Datang dari halaman Leads/CRM Agen — "Daftarkan sebagai Jamaah" membawa
+  // data lead lewat state router, bukan query string (supaya tidak nyangkut
+  // di riwayat/bookmark). Menunggu load() awal selesai (bukan langsung saat
+  // mount) supaya paketList sudah terisi ketika openDaftar mengisi
+  // total_tagihan dari harga_default paketnya. Dibersihkan lagi lewat
+  // replace supaya refresh atau tombol kembali browser tidak diam-diam
+  // membuka modal ini lagi.
   useEffect(() => {
-    if (location.state?.prefillDaftar) {
+    if (location.state?.prefillDaftar && !loading) {
       openDaftar(location.state.prefillDaftar);
       navigate(location.pathname, { replace: true, state: null });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
+  }, [location.state, loading]);
 
   function pilihPaket(paketId) {
     const p = paketList.find((x) => x.id === paketId);
