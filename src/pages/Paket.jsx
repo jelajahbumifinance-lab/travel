@@ -172,6 +172,7 @@ export default function Paket() {
                   <td className="p-4 whitespace-nowrap">
                     <GrupAksi>
                       <Aksi jenis="utama" onClick={() => navigate(`/paket/${p.id}/rab`)}>Kelola RAB</Aksi>
+                      <Aksi onClick={() => navigate(`/paket/${p.id}/manifest`)}>Manifest</Aksi>
                       {canWrite && <Aksi onClick={() => openEdit(p)}>Ubah</Aksi>}
                       {canWrite && <Aksi jenis="bahaya" onClick={() => handleNonaktifkan(p)}>Nonaktifkan</Aksi>}
                     </GrupAksi>

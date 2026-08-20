@@ -17,6 +17,7 @@ const Paket = lazy(() => import('./pages/Paket'));
 const Tagihan = lazy(() => import('./pages/Tagihan'));
 const Vendor = lazy(() => import('./pages/Vendor'));
 const RabPaket = lazy(() => import('./pages/RabPaket'));
+const ManifestPaket = lazy(() => import('./pages/ManifestPaket'));
 const Komisi = lazy(() => import('./pages/Komisi'));
 const PortalAgen = lazy(() => import('./pages/PortalAgen'));
 const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/tagihan" element={<Tagihan />} />
             <Route path="/paket" element={<Paket />} />
             <Route path="/paket/:paketId/rab" element={<RabPaket />} />
+            <Route path="/paket/:paketId/manifest" element={<ManifestPaket />} />
             <Route path="/vendor" element={<Vendor />} />
             <Route path="/komisi" element={<Komisi />} />
             <Route path="/buku-kas" element={<BukuKas />} />
