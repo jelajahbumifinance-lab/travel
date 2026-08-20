@@ -92,6 +92,15 @@ export default function PortalAgen() {
   const [leadError, setLeadError] = useState('');
   const [savingLead, setSavingLead] = useState(false);
 
+  // Update status/catatan calon jamaah sendiri (mis. "sudah mau DP,
+  // tolong didaftarkan") — lihat sql/0020_leads_update_agen.sql. Agen
+  // tidak bisa mencatat pembayaran sendiri, cuma mengabari staf.
+  const [leadDetailTarget, setLeadDetailTarget] = useState(null);
+  const [leadDetailStatus, setLeadDetailStatus] = useState('BARU');
+  const [leadDetailCatatan, setLeadDetailCatatan] = useState('');
+  const [leadDetailError, setLeadDetailError] = useState('');
+  const [savingLeadDetail, setSavingLeadDetail] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -223,6 +232,31 @@ export default function PortalAgen() {
       return;
     }
     setShowAddLead(false);
+    load();
+  }
+
+  function openLeadDetail(row) {
+    setLeadDetailTarget(row);
+    setLeadDetailStatus(row.status);
+    setLeadDetailCatatan(row.catatan || '');
+    setLeadDetailError('');
+  }
+
+  async function handleSaveLeadDetail(e) {
+    e.preventDefault();
+    if (!leadDetailTarget) return;
+    setLeadDetailError('');
+    setSavingLeadDetail(true);
+    const { error: err } = await supabase
+      .from('leads')
+      .update({ status: leadDetailStatus, catatan: leadDetailCatatan.trim() || null })
+      .eq('id', leadDetailTarget.id);
+    setSavingLeadDetail(false);
+    if (err) {
+      setLeadDetailError(err.message);
+      return;
+    }
+    setLeadDetailTarget(null);
     load();
   }
 
@@ -384,11 +418,12 @@ export default function PortalAgen() {
                 <th className="p-4 whitespace-nowrap">Minat Paket</th>
                 <th className="p-4 whitespace-nowrap">Tanggal</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
+                <th className="p-4 whitespace-nowrap text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
               {leadRows.length === 0 && (
-                <tr><td colSpan={4} className="p-10 text-center text-ink-soft">Belum ada calon jamaah yang Anda catat.</td></tr>
+                <tr><td colSpan={5} className="p-10 text-center text-ink-soft">Belum ada calon jamaah yang Anda catat.</td></tr>
               )}
               {leadRows.map((r) => (
                 <tr key={r.id}>
@@ -400,6 +435,13 @@ export default function PortalAgen() {
                   <td className="p-4 whitespace-nowrap text-ink-soft">{tanggalID(r.created_at)}</td>
                   <td className="p-4 text-center">
                     <StatusPil peta={STATUS_LEAD} nilai={r.status} bawaan="BARU" />
+                  </td>
+                  <td className="p-4 text-center">
+                    {r.status === 'JADI_JAMAAH' ? (
+                      <span className="text-[11px] text-ink-soft">—</span>
+                    ) : (
+                      <Aksi onClick={() => openLeadDetail(r)}>Update</Aksi>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -593,6 +635,40 @@ export default function PortalAgen() {
               {leadError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{leadError}</p>}
               <button type="submit" disabled={savingLead} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
                 {savingLead ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {leadDetailTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(13,21,23,0.55)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setLeadDetailTarget(null); }}>
+          <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display text-lg font-semibold">{leadDetailTarget.nama}</h2>
+              <button type="button" onClick={() => setLeadDetailTarget(null)} aria-label="Tutup" className="text-xl">×</button>
+            </div>
+            <p className="text-xs text-ink-soft mb-4">
+              Kabari staf JBI kalau ada perkembangan — mis. sudah siap DP — lewat catatan di bawah. Pendaftaran &amp; pembayaran tetap diproses staf lewat Tagihan.
+            </p>
+            <form onSubmit={handleSaveLeadDetail} className="space-y-4" noValidate>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Status</label>
+                <select value={leadDetailStatus} onChange={(e) => setLeadDetailStatus(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm">
+                  <option value="BARU">Baru</option>
+                  <option value="DIHUBUNGI">Sudah Dihubungi</option>
+                  <option value="TERTARIK">Tertarik / Siap DP</option>
+                  <option value="TIDAK_TERTARIK">Tidak Berminat</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan untuk Staf</label>
+                <textarea rows={3} value={leadDetailCatatan} onChange={(e) => setLeadDetailCatatan(e.target.value)} placeholder="mis. Sudah mau DP Rp 5.000.000, minta didaftarkan." className="field w-full rounded-md2 px-4 py-2.5 text-sm resize-none" />
+              </div>
+              {leadDetailError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{leadDetailError}</p>}
+              <button type="submit" disabled={savingLeadDetail} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
+                {savingLeadDetail ? 'Menyimpan...' : 'Simpan'}
               </button>
             </form>
           </div>
