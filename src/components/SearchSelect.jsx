@@ -82,6 +82,12 @@ export default function SearchSelect({
     else if (e.key === 'Escape') { setOpen(false); }
   }
 
+  // Satu-satunya cara menghapus pilihan sebelumnya adalah membuka dropdown
+  // lagi dan mengklik baris "kosong" di paling atas — tidak jelas buat
+  // pengguna kalau sudah keburu ada nilai terpilih di kotaknya. Tombol ×
+  // ini memberi jalan pintas yang terlihat, tanpa perlu buka dropdown dulu.
+  const showClear = allowEmpty && !disabled && !open && !!value;
+
   return (
     <div className="relative" ref={wrapRef}>
       <input
@@ -92,9 +98,19 @@ export default function SearchSelect({
         onFocus={() => { setOpen(true); setQuery(''); }}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+        className={`field w-full rounded-md2 px-4 py-2.5 text-sm ${showClear ? 'pr-9' : ''}`}
         autoComplete="off"
       />
+      {showClear && (
+        <button
+          type="button"
+          onClick={() => { onChange(''); setQuery(''); }}
+          aria-label="Hapus pilihan"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-ink-soft hover:bg-accent-soft hover:text-accent-text"
+        >
+          ×
+        </button>
+      )}
       {open && (
         <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-md2 border border-rule bg-paper-raised shadow-card">
           {loading && <div className="px-4 py-2.5 text-sm text-ink-soft">Mencari...</div>}
