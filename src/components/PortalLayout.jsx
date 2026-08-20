@@ -3,13 +3,19 @@ import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandIcon, BrandWordmark } from './BrandMark';
 
+const ROLE_LABEL = {
+  agen: 'Agen/Mitra',
+  jamaah: 'Jamaah',
+};
+
 /**
- * Layout terpisah untuk portal agen — sengaja TANPA sidebar staf. Agen
- * hanya punya satu halaman (jamaah & komisi miliknya sendiri), jadi tidak
- * ada menu untuk disembunyikan; memakai <Layout> staf dan menyaring menunya
- * berisiko satu item baru lolos tanpa sengaja jadi terlihat oleh agen.
+ * Layout terpisah untuk portal non-staf (agen, jamaah) — sengaja TANPA
+ * sidebar staf. Masing-masing hanya punya satu halaman (data miliknya
+ * sendiri), jadi tidak ada menu untuk disembunyikan; memakai <Layout>
+ * staf dan menyaring menunya berisiko satu item baru lolos tanpa sengaja
+ * jadi terlihat oleh peran yang bukan staf.
  */
-export default function AgentLayout() {
+export default function PortalLayout() {
   const { profile, signOut } = useAuth();
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
@@ -30,7 +36,7 @@ export default function AgentLayout() {
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-semibold leading-tight">{profile?.full_name}</p>
-            <p className="text-[11px] text-ink-soft leading-tight">Agen/Mitra</p>
+            <p className="text-[11px] text-ink-soft leading-tight">{ROLE_LABEL[profile?.role] || profile?.role}</p>
           </div>
           <button
             type="button"

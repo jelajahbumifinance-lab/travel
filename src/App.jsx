@@ -3,12 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import AgentLayout from './components/AgentLayout';
+import PortalLayout from './components/PortalLayout';
 import Login from './pages/Login';
 import DaftarAgen from './pages/DaftarAgen';
+import DaftarJamaah from './pages/DaftarJamaah';
 
-// Halaman staf dimuat lazy — agen tidak perlu ikut mengunduh kode buku kas
-// yang tidak bisa ia buka.
+// Halaman staf dimuat lazy — agen/jamaah tidak perlu ikut mengunduh kode
+// buku kas yang tidak bisa mereka buka.
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const BukuKas = lazy(() => import('./pages/BukuKas'));
 const Rekening = lazy(() => import('./pages/Rekening'));
@@ -18,14 +19,17 @@ const Vendor = lazy(() => import('./pages/Vendor'));
 const RabPaket = lazy(() => import('./pages/RabPaket'));
 const Komisi = lazy(() => import('./pages/Komisi'));
 const PortalAgen = lazy(() => import('./pages/PortalAgen'));
+const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
 const Laporan = lazy(() => import('./pages/Laporan'));
 const JejakAudit = lazy(() => import('./pages/JejakAudit'));
 
-/** Halaman awal berbeda per peran: staf ke Dashboard, agen ke portalnya sendiri. */
+const BERANDA_PERAN = { agen: '/portal-agen', jamaah: '/portal-jamaah' };
+
+/** Halaman awal berbeda per peran: staf ke Dashboard, agen/jamaah ke portalnya sendiri. */
 function BerandaSesuaiPeran() {
   const { profile } = useAuth();
-  return <Navigate to={profile?.role === 'agen' ? '/portal-agen' : '/dashboard'} replace />;
+  return <Navigate to={BERANDA_PERAN[profile?.role] || '/dashboard'} replace />;
 }
 
 export default function App() {
@@ -34,16 +38,17 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          {/* Publik — agen/mitra mendaftar sendiri, belum punya akun apa pun */}
+          {/* Publik — agen/mitra dan jamaah mendaftar sendiri, belum punya akun apa pun */}
           <Route path="/daftar-agen" element={<DaftarAgen />} />
+          <Route path="/daftar-jamaah" element={<DaftarJamaah />} />
 
           <Route
             element={
               // Buku kas, RAB, dan seluruh menu staf adalah data internal JBI —
-              // agen login untuk portalnya sendiri di bawah, tapi tidak pernah
-              // boleh sampai ke rute-rute ini. Dijaga di router, bukan cuma
-              // disembunyikan dari sidebar.
-              <ProtectedRoute blockedRoles={['agen']}>
+              // agen/jamaah login untuk portalnya sendiri di bawah, tapi tidak
+              // pernah boleh sampai ke rute-rute ini. Dijaga di router, bukan
+              // cuma disembunyikan dari sidebar.
+              <ProtectedRoute blockedRoles={['agen', 'jamaah']}>
                 <Layout />
               </ProtectedRoute>
             }
@@ -84,12 +89,13 @@ export default function App() {
 
           <Route
             element={
-              <ProtectedRoute allowedRoles={['agen']}>
-                <AgentLayout />
+              <ProtectedRoute allowedRoles={['agen', 'jamaah']}>
+                <PortalLayout />
               </ProtectedRoute>
             }
           >
             <Route path="/portal-agen" element={<PortalAgen />} />
+            <Route path="/portal-jamaah" element={<PortalJamaah />} />
           </Route>
 
           <Route path="/" element={<BerandaSesuaiPeran />} />

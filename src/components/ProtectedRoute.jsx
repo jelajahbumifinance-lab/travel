@@ -1,10 +1,17 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+// Ke mana peran non-staf dipulangkan kalau mencoba masuk rute yang bukan
+// haknya. "/dashboard" sengaja tidak dipakai sebagai fallback untuk
+// keduanya — halaman itu ada di balik blockedRoles={['agen','jamaah']},
+// jadi mengarahkan mereka ke sana akan memantul selamanya antara dua
+// rute yang saling menolak.
+const BERANDA_PERAN = { agen: '/portal-agen', jamaah: '/portal-jamaah' };
+
 /**
  * allowedRoles opsional — kalau diisi, hanya peran tsb yang boleh mengakses.
  * blockedRoles adalah kebalikannya, untuk kasus "semua orang kecuali X"
- * (dipakai menutup buku kas & seluruh menu staf dari peran agen).
+ * (dipakai menutup buku kas & seluruh menu staf dari peran agen/jamaah).
  */
 export default function ProtectedRoute({ children, allowedRoles, blockedRoles }) {
   const { loading, isAuthenticated, profile, profileError, signOut } = useAuth();
@@ -43,10 +50,7 @@ export default function ProtectedRoute({ children, allowedRoles, blockedRoles })
     (allowedRoles && !allowedRoles.includes(profile.role)) ||
     (blockedRoles && blockedRoles.includes(profile.role))
   ) {
-    // Agen dipulangkan ke portalnya sendiri, bukan /dashboard — halaman itu
-    // sendiri ada di balik blockedRoles={['agen']}, jadi redirect ke sana
-    // untuk agen akan memantul selamanya antara dua rute yang saling menolak.
-    return <Navigate to={profile.role === 'agen' ? '/portal-agen' : '/dashboard'} replace />;
+    return <Navigate to={BERANDA_PERAN[profile.role] || '/dashboard'} replace />;
   }
 
   return children;

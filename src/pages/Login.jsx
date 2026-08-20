@@ -91,7 +91,17 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-5 pt-4 border-t border-rule text-center">
+        <div className="mt-5 pt-4 border-t border-rule text-center space-y-2">
+          <p className="text-xs text-ink-soft">
+            Jamaah — cek tagihan &amp; cicilan?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/daftar-jamaah')}
+              className="font-semibold text-accent-text hover:underline"
+            >
+              Daftar di sini
+            </button>
+          </p>
           <p className="text-xs text-ink-soft">
             Agen/mitra baru?{' '}
             <button
@@ -102,7 +112,7 @@ export default function Login() {
               Daftar di sini
             </button>
           </p>
-          <p className="text-xs text-ink-soft mt-2">
+          <p className="text-xs text-ink-soft">
             Staf JBI: akun dibuat oleh admin keuangan lewat menu Undang Staf.
           </p>
         </div>
