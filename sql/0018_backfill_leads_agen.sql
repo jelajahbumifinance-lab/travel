@@ -12,12 +12,20 @@
 --
 -- Aman dijalankan berkali-kali (idempotent) — baris yang sudah pernah
 -- di-backfill untuk jamaah yang sama tidak akan digandakan.
+--
+-- v2: versi pertama skrip ini mensyaratkan jamaah.no_hp terisi (kolom
+-- leads.no_hp NOT NULL) — ternyata banyak jamaah lama didaftarkan staf
+-- tanpa nomor HP terisi (memang bukan field wajib di form Daftarkan
+-- Jamaah), jadi mereka terlewat sama sekali dari backfill pertama.
+-- Sekarang dipakai placeholder "(tanpa nomor)" supaya tetap ikut
+-- ter-backfill. Aman dijalankan ulang di database yang sudah pernah
+-- menjalankan v1 — pengecekan idempotensinya sudah disesuaikan juga.
 -- ============================================================
 
 insert into leads (nama, no_hp, email, minat_paket_id, agen_id, sumber, status, catatan, created_by, created_at)
 select
   j.nama,
-  j.no_hp,
+  coalesce(j.no_hp, '(tanpa nomor)'),
   null,
   p.paket_id,
   j.agen_id,
@@ -31,11 +39,9 @@ left join lateral (
   select paket_id from pendaftaran where jamaah_id = j.id order by created_at asc limit 1
 ) p on true
 where j.agen_id is not null
-  and j.no_hp is not null
   and not exists (
     select 1 from leads l
     where l.agen_id = j.agen_id
       and l.nama = j.nama
-      and l.no_hp = j.no_hp
       and l.sumber = 'AGEN'
   );
