@@ -94,6 +94,15 @@ export function IconLaporan(props) {
   );
 }
 
+export function IconJejakAudit(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 3.5h6l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" />
+      <path d="M9 12.5l2 2 4-4.5" />
+    </svg>
+  );
+}
+
 export function IconUndangStaf(props) {
   return (
     <svg {...base} {...props}>

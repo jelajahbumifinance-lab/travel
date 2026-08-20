@@ -20,6 +20,7 @@ const Komisi = lazy(() => import('./pages/Komisi'));
 const PortalAgen = lazy(() => import('./pages/PortalAgen'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
 const Laporan = lazy(() => import('./pages/Laporan'));
+const JejakAudit = lazy(() => import('./pages/JejakAudit'));
 
 /** Halaman awal berbeda per peran: staf ke Dashboard, agen ke portalnya sendiri. */
 function BerandaSesuaiPeran() {
@@ -68,6 +69,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['direktur', 'admin_keuangan']}>
                   <Laporan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/jejak-audit"
+              element={
+                <ProtectedRoute allowedRoles={['direktur', 'admin_keuangan']}>
+                  <JejakAudit />
                 </ProtectedRoute>
               }
             />

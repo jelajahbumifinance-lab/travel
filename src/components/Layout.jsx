@@ -2,7 +2,8 @@ import { useState, Suspense } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandIcon } from './BrandMark';
-import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconKomisi, IconLaporan, IconUndangStaf } from './Icons';
+import NotificationBell from './NotificationBell';
+import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf } from './Icons';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', Icon: IconDashboard },
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   // memang perlu dibatasi (laporan manajemen, mengundang akun baru) yang
   // menyebutkannya.
   { to: '/laporan', label: 'Laporan Keuangan', Icon: IconLaporan, roles: ['direktur', 'admin_keuangan'] },
+  { to: '/jejak-audit', label: 'Jejak Audit', Icon: IconJejakAudit, roles: ['direktur', 'admin_keuangan'] },
   { to: '/undang-staf', label: 'Undang Staf', Icon: IconUndangStaf, roles: ['direktur', 'admin_keuangan'] },
 ];
 
@@ -99,14 +101,17 @@ export default function Layout() {
             <BrandIcon className="w-8 h-8" />
             <span className="font-display font-bold text-sm">JBI Finance</span>
           </Link>
-          <button
-            type="button"
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen((v) => !v)}
-            className="w-9 h-9 rounded-full bg-accent-soft flex items-center justify-center text-accent-text"
-          >
-            {mobileOpen ? '✕' : '☰'}
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button
+              type="button"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((v) => !v)}
+              className="w-9 h-9 rounded-full bg-accent-soft flex items-center justify-center text-accent-text"
+            >
+              {mobileOpen ? '✕' : '☰'}
+            </button>
+          </div>
         </header>
 
         {mobileOpen && (
@@ -130,6 +135,10 @@ export default function Layout() {
             </div>
           </div>
         )}
+
+        <div className="hidden md:flex items-center justify-end gap-2 px-6 pt-3 w-full max-w-7xl mx-auto">
+          <NotificationBell />
+        </div>
 
         <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:px-6 md:py-4 overflow-y-auto">
           <Suspense fallback={<div className="text-sm text-ink-soft">Memuat halaman...</div>}>
