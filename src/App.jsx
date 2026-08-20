@@ -20,6 +20,7 @@ const RabPaket = lazy(() => import('./pages/RabPaket'));
 const ManifestPaket = lazy(() => import('./pages/ManifestPaket'));
 const OperasionalPaket = lazy(() => import('./pages/OperasionalPaket'));
 const Komisi = lazy(() => import('./pages/Komisi'));
+const Agen = lazy(() => import('./pages/Agen'));
 const PortalAgen = lazy(() => import('./pages/PortalAgen'));
 const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/paket/:paketId/operasional" element={<OperasionalPaket />} />
             <Route path="/vendor" element={<Vendor />} />
             <Route path="/komisi" element={<Komisi />} />
+            <Route path="/agen" element={<Agen />} />
             <Route path="/buku-kas" element={<BukuKas />} />
             <Route path="/rekening" element={<Rekening />} />
             <Route

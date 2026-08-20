@@ -3,13 +3,14 @@ import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandIcon } from './BrandMark';
 import NotificationBell from './NotificationBell';
-import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf } from './Icons';
+import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconAgen, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf } from './Icons';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', Icon: IconDashboard },
   { to: '/tagihan', label: 'Tagihan & Cicilan', Icon: IconTagihan },
   { to: '/paket', label: 'Paket Keberangkatan', Icon: IconPaket },
   { to: '/vendor', label: 'Vendor', Icon: IconVendor },
+  { to: '/agen', label: 'Agen & Mitra', Icon: IconAgen },
   { to: '/komisi', label: 'Komisi Agen', Icon: IconKomisi },
   { to: '/buku-kas', label: 'Buku Kas', Icon: IconBukuKas },
   { to: '/rekening', label: 'Kas & Rekening', Icon: IconRekening },
