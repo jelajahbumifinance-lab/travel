@@ -5,11 +5,11 @@ import { rupiah } from '../lib/format';
 
 /**
  * Notifikasi dihitung langsung dari data yang sudah ada (piutang lewat
- * tempo, komisi siap cair) — bukan tabel notifikasi terpisah yang perlu
- * dijaga tetap sinkron. Selalu akurat karena bukan salinan, dan RLS yang
- * sudah ada otomatis membatasi apa yang terlihat per peran (mis. kasir
- * tidak akan pernah melihat notifikasi komisi karena memang tidak boleh
- * membaca tabel itu).
+ * tempo, komisi diajukan/siap cair) — bukan tabel notifikasi terpisah yang
+ * perlu dijaga tetap sinkron. Selalu akurat karena bukan salinan, dan RLS
+ * yang sudah ada otomatis membatasi apa yang terlihat per peran (mis.
+ * kasir tidak akan pernah melihat notifikasi komisi karena memang tidak
+ * boleh membaca tabel itu).
  *
  * PRD Bagian 7 (Modul 09) juga menyebut pengingat lewat WhatsApp —
  * itu butuh kredensial WhatsApp Business API yang belum tersedia,
@@ -19,18 +19,21 @@ export default function NotificationBell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [piutang, setPiutang] = useState([]);
-  const [komisi, setKomisi] = useState([]);
+  const [diajukan, setDiajukan] = useState([]);
+  const [siapCair, setSiapCair] = useState([]);
   const [loading, setLoading] = useState(true);
   const wrapRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [piutangRes, komisiRes] = await Promise.all([
+    const [piutangRes, diajukanRes, siapCairRes] = await Promise.all([
       supabase.from('v_pendaftaran_status').select('id, jamaah_nama, sisa, jatuh_tempo_berikutnya').eq('computed_status', 'LEWAT_TEMPO'),
+      supabase.from('v_komisi_agen').select('id, agen_nama, nominal').eq('status', 'DIAJUKAN'),
       supabase.from('v_komisi_agen').select('id, agen_nama, nominal').eq('status', 'AKRUAL').eq('jamaah_lunas', true),
     ]);
     setPiutang(piutangRes.data || []);
-    setKomisi(komisiRes.data || []);
+    setDiajukan(diajukanRes.data || []);
+    setSiapCair(siapCairRes.data || []);
     setLoading(false);
   }, []);
 
@@ -44,7 +47,7 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const total = piutang.length + komisi.length;
+  const total = piutang.length + diajukan.length + siapCair.length;
 
   function bukaHalaman(path) {
     setOpen(false);
@@ -75,8 +78,21 @@ export default function NotificationBell() {
           {loading && <p className="p-4 text-sm text-ink-soft">Memuat...</p>}
           {!loading && total === 0 && <p className="p-4 text-sm text-ink-soft">Tidak ada notifikasi.</p>}
 
-          {!loading && piutang.length > 0 && (
+          {!loading && diajukan.length > 0 && (
             <div className="p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-accent-text px-1 mb-1.5">Pencairan Diajukan Agen</p>
+              {diajukan.slice(0, 5).map((k) => (
+                <button key={k.id} type="button" onClick={() => bukaHalaman('/komisi')} className="w-full text-left px-2 py-2 rounded-md2 hover:bg-accent-soft text-sm">
+                  <span className="font-medium block">{k.agen_nama}</span>
+                  <span className="text-[11px] text-ink-soft">{rupiah(k.nominal)}</span>
+                </button>
+              ))}
+              {diajukan.length > 5 && <p className="text-[11px] text-ink-soft px-2 mt-1">+{diajukan.length - 5} lainnya</p>}
+            </div>
+          )}
+
+          {!loading && piutang.length > 0 && (
+            <div className="p-3 border-t border-rule">
               <p className="text-[11px] font-bold uppercase tracking-wider text-brick-600 px-1 mb-1.5">Piutang Lewat Tempo</p>
               {piutang.slice(0, 5).map((p) => (
                 <button key={p.id} type="button" onClick={() => bukaHalaman('/tagihan')} className="w-full text-left px-2 py-2 rounded-md2 hover:bg-accent-soft text-sm">
@@ -88,16 +104,16 @@ export default function NotificationBell() {
             </div>
           )}
 
-          {!loading && komisi.length > 0 && (
+          {!loading && siapCair.length > 0 && (
             <div className="p-3 border-t border-rule">
               <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700 px-1 mb-1.5">Komisi Siap Cair</p>
-              {komisi.slice(0, 5).map((k) => (
+              {siapCair.slice(0, 5).map((k) => (
                 <button key={k.id} type="button" onClick={() => bukaHalaman('/komisi')} className="w-full text-left px-2 py-2 rounded-md2 hover:bg-accent-soft text-sm">
                   <span className="font-medium block">{k.agen_nama}</span>
                   <span className="text-[11px] text-ink-soft">{rupiah(k.nominal)}</span>
                 </button>
               ))}
-              {komisi.length > 5 && <p className="text-[11px] text-ink-soft px-2 mt-1">+{komisi.length - 5} lainnya</p>}
+              {siapCair.length > 5 && <p className="text-[11px] text-ink-soft px-2 mt-1">+{siapCair.length - 5} lainnya</p>}
             </div>
           )}
         </div>

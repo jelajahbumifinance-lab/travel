@@ -85,6 +85,7 @@ export const STATUS_PENDAFTARAN = {
 
 export const STATUS_KOMISI = {
   AKRUAL: { label: 'Akrual', nada: 'warn' },
+  DIAJUKAN: { label: 'Diajukan', nada: 'info' },
   CAIR: { label: 'Cair', nada: 'ok' },
   BATAL: { label: 'Dibatalkan', nada: 'mute' },
 };

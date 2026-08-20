@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID } from '../lib/format';
-import { StatusPil, STATUS_PENDAFTARAN, STATUS_KOMISI } from '../components/ui';
+import { unduhCSV } from '../lib/csv';
+import { StatusPil, STATUS_PENDAFTARAN, STATUS_KOMISI, Aksi } from '../components/ui';
 
 const JENIS_MITRA_LABEL = { INDIVIDU: 'Individu', PERUSAHAAN: 'Perusahaan' };
 
@@ -23,6 +24,12 @@ export default function PortalAgen() {
   const [profilForm, setProfilForm] = useState(PROFIL_KOSONG);
   const [profilError, setProfilError] = useState('');
   const [savingProfil, setSavingProfil] = useState(false);
+
+  const [mengajukanId, setMengajukanId] = useState(null);
+
+  const [riwayatTarget, setRiwayatTarget] = useState(null); // baris jamaah
+  const [riwayatRows, setRiwayatRows] = useState([]);
+  const [riwayatLoading, setRiwayatLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,6 +106,35 @@ export default function PortalAgen() {
     load();
   }
 
+  async function ajukanPencairan(k) {
+    if (!window.confirm(`Ajukan pencairan komisi ${rupiah(k.nominal)} untuk ${k.jamaah_nama}? Admin JBI akan memprosesnya.`)) return;
+    setMengajukanId(k.id);
+    const { error: err } = await supabase.rpc('ajukan_pencairan_komisi', { p_komisi_id: k.id });
+    setMengajukanId(null);
+    if (err) { window.alert('Gagal mengajukan: ' + err.message); return; }
+    load();
+  }
+
+  async function bukaRiwayat(row) {
+    setRiwayatTarget(row);
+    setRiwayatLoading(true);
+    const { data } = await supabase
+      .from('cicilan')
+      .select('id, nominal, tanggal, no_kuitansi, is_void')
+      .eq('pendaftaran_id', row.id)
+      .order('tanggal', { ascending: false });
+    setRiwayatRows(data || []);
+    setRiwayatLoading(false);
+  }
+
+  function eksporLaporan() {
+    unduhCSV(
+      'laporan-agen.csv',
+      ['Jamaah', 'Paket', 'Total Tagihan', 'Sisa', 'Status Pendaftaran'],
+      jamaahRows.map((r) => [r.jamaah_nama, r.paket_nama, r.total_tagihan, r.sisa, r.computed_status])
+    );
+  }
+
   const totalAkrual = komisiRows.filter((k) => k.status === 'AKRUAL').reduce((s, k) => s + Number(k.nominal), 0);
   const totalCair = komisiRows.filter((k) => k.status === 'CAIR').reduce((s, k) => s + Number(k.nominal), 0);
 
@@ -121,9 +157,14 @@ export default function PortalAgen() {
           <h1 className="font-display text-2xl font-semibold">Portal Agen</h1>
           <p className="text-ink-soft text-sm mt-1">Jamaah yang Anda daftarkan dan komisi Anda.</p>
         </div>
-        <button type="button" onClick={openEditProfil} className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm">
-          Lengkapi Profil
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={eksporLaporan} className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text font-semibold py-2 px-4 rounded-md2 text-sm">
+            ⭳ Ekspor Laporan
+          </button>
+          <button type="button" onClick={openEditProfil} className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm">
+            Lengkapi Profil
+          </button>
+        </div>
       </div>
 
       {rekeningBelumDiisi && (
@@ -172,11 +213,12 @@ export default function PortalAgen() {
                 <th className="p-4 whitespace-nowrap text-right">Total</th>
                 <th className="p-4 whitespace-nowrap text-right">Sisa</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
+                <th className="p-4 whitespace-nowrap text-center">Riwayat</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
               {jamaahRows.length === 0 && (
-                <tr><td colSpan={5} className="p-10 text-center text-ink-soft">Belum ada jamaah yang Anda daftarkan.</td></tr>
+                <tr><td colSpan={6} className="p-10 text-center text-ink-soft">Belum ada jamaah yang Anda daftarkan.</td></tr>
               )}
               {jamaahRows.map((r) => (
                 <tr key={r.id}>
@@ -185,6 +227,7 @@ export default function PortalAgen() {
                   <td className="tabular p-4 text-right whitespace-nowrap">{rupiah(r.total_tagihan)}</td>
                   <td className="tabular p-4 text-right whitespace-nowrap font-semibold">{rupiah(Math.max(0, r.sisa))}</td>
                   <td className="p-4 text-center"><StatusPil peta={STATUS_PENDAFTARAN} nilai={r.computed_status} bawaan="BELUM_BAYAR" /></td>
+                  <td className="p-4 text-center"><Aksi onClick={() => bukaRiwayat(r)}>Lihat</Aksi></td>
                 </tr>
               ))}
             </tbody>
@@ -203,11 +246,12 @@ export default function PortalAgen() {
                 <th className="p-4 whitespace-nowrap text-right">Nominal</th>
                 <th className="p-4 whitespace-nowrap text-center">Tanggal</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
+                <th className="p-4 whitespace-nowrap text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
               {komisiRows.length === 0 && (
-                <tr><td colSpan={5} className="p-10 text-center text-ink-soft">Belum ada komisi tercatat.</td></tr>
+                <tr><td colSpan={6} className="p-10 text-center text-ink-soft">Belum ada komisi tercatat.</td></tr>
               )}
               {komisiRows.map((k) => (
                 <tr key={k.id} className={k.status === 'BATAL' ? 'opacity-50' : ''}>
@@ -219,6 +263,13 @@ export default function PortalAgen() {
                     <StatusPil peta={STATUS_KOMISI} nilai={k.status} bawaan="AKRUAL" />
                     {k.status === 'AKRUAL' && !k.jamaah_lunas && (
                       <p className="text-[10px] text-ink-soft mt-1">Menunggu jamaah lunas</p>
+                    )}
+                  </td>
+                  <td className="p-4 text-center whitespace-nowrap">
+                    {k.status === 'AKRUAL' && k.jamaah_lunas && (
+                      <Aksi jenis="utama" onClick={() => ajukanPencairan(k)} disabled={mengajukanId === k.id}>
+                        {mengajukanId === k.id ? '...' : 'Ajukan Pencairan'}
+                      </Aksi>
                     )}
                   </td>
                 </tr>
@@ -294,6 +345,35 @@ export default function PortalAgen() {
                 {savingProfil ? 'Menyimpan...' : 'Simpan profil'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {riwayatTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(13,21,23,0.55)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setRiwayatTarget(null); }}>
+          <div className="card rounded-xl2 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-display text-lg font-semibold">Riwayat Pembayaran</h2>
+                <p className="text-xs text-ink-soft mt-0.5">{riwayatTarget.jamaah_nama} — {riwayatTarget.paket_nama}</p>
+              </div>
+              <button type="button" onClick={() => setRiwayatTarget(null)} aria-label="Tutup" className="text-xl">×</button>
+            </div>
+            {riwayatLoading && <p className="text-sm text-ink-soft">Memuat...</p>}
+            {!riwayatLoading && riwayatRows.length === 0 && <p className="text-sm text-ink-soft">Belum ada pembayaran tercatat.</p>}
+            {!riwayatLoading && riwayatRows.length > 0 && (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {riwayatRows.map((c) => (
+                  <div key={c.id} className={`flex items-center justify-between border-b border-rule pb-2 ${c.is_void ? 'opacity-50' : ''}`}>
+                    <div>
+                      <p className="text-sm font-medium tabular">{rupiah(c.nominal)}</p>
+                      <p className="text-[11px] text-ink-soft">{tanggalID(c.tanggal)} · {c.no_kuitansi}{c.is_void && ' · Dibatalkan'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

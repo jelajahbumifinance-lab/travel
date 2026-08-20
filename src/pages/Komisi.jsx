@@ -12,7 +12,8 @@ function todayISO() {
 
 const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Semua status' },
-  { value: 'AKRUAL', label: 'Akrual (belum cair)' },
+  { value: 'AKRUAL', label: 'Akrual (belum diajukan)' },
+  { value: 'DIAJUKAN', label: 'Diajukan agen' },
   { value: 'CAIR', label: 'Sudah cair' },
   { value: 'BATAL', label: 'Dibatalkan' },
 ];
@@ -271,13 +272,13 @@ export default function Komisi() {
                   <td className="tabular p-4 text-right whitespace-nowrap">{rupiah(k.nominal)}</td>
                   <td className="p-4 text-center">
                     <StatusPil peta={STATUS_KOMISI} nilai={k.status} bawaan="AKRUAL" />
-                    {k.status === 'AKRUAL' && !k.jamaah_lunas && (
+                    {(k.status === 'AKRUAL' || k.status === 'DIAJUKAN') && !k.jamaah_lunas && (
                       <p className="text-[10px] text-ink-soft mt-1">Menunggu pelunasan</p>
                     )}
                   </td>
                   {canManage && (
                     <td className="p-4 whitespace-nowrap">
-                      {k.status === 'AKRUAL' && (
+                      {(k.status === 'AKRUAL' || k.status === 'DIAJUKAN') && (
                         <GrupAksi>
                           <Aksi
                             jenis="utama"
