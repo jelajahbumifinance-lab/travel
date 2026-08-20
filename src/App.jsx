@@ -24,6 +24,7 @@ const Komisi = lazy(() => import('./pages/Komisi'));
 const Agen = lazy(() => import('./pages/Agen'));
 const Leads = lazy(() => import('./pages/Leads'));
 const CrmAgen = lazy(() => import('./pages/CrmAgen'));
+const Helpdesk = lazy(() => import('./pages/Helpdesk'));
 const PortalAgen = lazy(() => import('./pages/PortalAgen'));
 const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/komisi" element={<Komisi />} />
             <Route path="/agen" element={<Agen />} />
             <Route path="/crm-agen" element={<CrmAgen />} />
+            <Route path="/helpdesk" element={<Helpdesk />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/buku-kas" element={<BukuKas />} />
             <Route path="/rekening" element={<Rekening />} />

@@ -131,3 +131,13 @@ export function IconLeads(props) {
     </svg>
   );
 }
+
+export function IconHelpdesk(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 5.5h16v11H9l-4 3.5v-3.5H4v-11Z" />
+      <path d="M9.5 10.2a2.2 2.2 0 1 1 3.3 1.9c-.7.4-1.3.9-1.3 1.9" />
+      <circle cx="12" cy="16.4" r=".25" fill="currentColor" />
+    </svg>
+  );
+}
