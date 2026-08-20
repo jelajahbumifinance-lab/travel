@@ -7,6 +7,7 @@ import Kuitansi from '../components/Kuitansi';
 export default function PortalJamaah() {
   const [rows, setRows] = useState([]);
   const [cicilanMap, setCicilanMap] = useState({}); // pendaftaran_id -> [cicilan]
+  const [itineraryMap, setItineraryMap] = useState({}); // paket_id -> [itinerary_item]
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cetakData, setCetakData] = useState(null);
@@ -42,6 +43,21 @@ export default function PortalJamaah() {
         peta[c.pendaftaran_id].push(c);
       });
       setCicilanMap(peta);
+    }
+
+    const paketIds = [...new Set((pendaftaranData || []).map((r) => r.paket_id))];
+    if (paketIds.length > 0) {
+      const { data: itineraryData } = await supabase
+        .from('itinerary_item')
+        .select('id, paket_id, hari, judul, deskripsi')
+        .in('paket_id', paketIds)
+        .order('hari');
+      const petaItin = {};
+      (itineraryData || []).forEach((it) => {
+        if (!petaItin[it.paket_id]) petaItin[it.paket_id] = [];
+        petaItin[it.paket_id].push(it);
+      });
+      setItineraryMap(petaItin);
     }
     setLoading(false);
   }, []);
@@ -122,6 +138,26 @@ export default function PortalJamaah() {
                   <p className={`tabular text-lg font-semibold mt-0.5 ${Number(row.sisa) > 0 ? 'text-brick-600' : 'text-teal-700'}`}>{rupiah(Math.max(0, row.sisa))}</p>
                 </div>
               </div>
+
+              {(itineraryMap[row.paket_id] || []).length > 0 && (
+                <div className="p-5 border-b border-rule">
+                  <p className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3">Jadwal Perjalanan</p>
+                  <div className="space-y-3">
+                    {itineraryMap[row.paket_id].map((it) => (
+                      <div key={it.id} className="flex items-start gap-3">
+                        <div className="w-12 shrink-0 text-center">
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-ink-soft">Hari</p>
+                          <p className="font-display text-lg font-bold text-orange-500">{it.hari}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{it.judul}</p>
+                          {it.deskripsi && <p className="text-xs text-ink-soft mt-0.5 whitespace-pre-line">{it.deskripsi}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="p-5">
                 <p className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-3">Riwayat Pembayaran</p>
