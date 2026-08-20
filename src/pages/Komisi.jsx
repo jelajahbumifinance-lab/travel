@@ -48,7 +48,7 @@ export default function Komisi() {
       supabase.from('aturan_komisi').select('id, paket_id, agen_id, tipe, nilai'),
       supabase.from('v_komisi_agen').select('*').order('created_at', { ascending: false }),
       supabase.from('paket').select('id, nama').eq('is_active', true).order('nama'),
-      supabase.from('profiles').select('id, full_name').eq('role', 'agen').eq('is_active', true).order('full_name'),
+      supabase.from('profiles').select('id, full_name, nama_bank, nomor_rekening, nama_pemilik_rekening').eq('role', 'agen').eq('is_active', true).order('full_name'),
       supabase.from('accounts').select('id, name').eq('is_active', true).order('name'),
       supabase.from('transaction_categories').select('id, name, type').eq('is_active', true).eq('type', 'OUT').order('name'),
     ]);
@@ -70,6 +70,7 @@ export default function Komisi() {
 
   const paketMap = useMemo(() => Object.fromEntries(paketList.map((p) => [p.id, p.nama])), [paketList]);
   const agenMap = useMemo(() => Object.fromEntries(agenList.map((a) => [a.id, a.full_name])), [agenList]);
+  const agenById = useMemo(() => Object.fromEntries(agenList.map((a) => [a.id, a])), [agenList]);
 
   const filteredKomisi = useMemo(
     () => (statusFilter ? komisi.filter((k) => k.status === statusFilter) : komisi),
@@ -376,6 +377,20 @@ export default function Komisi() {
             <p className="text-sm text-ink-soft mb-4">
               {cairTarget.agen_nama} — {cairTarget.jamaah_nama} — <span className="tabular font-semibold text-ink">{rupiah(cairTarget.nominal)}</span>
             </p>
+            {(() => {
+              const rek = agenById[cairTarget.agen_id];
+              return rek?.nomor_rekening ? (
+                <div className="bg-teal-100 rounded-md2 p-3 mb-4 text-sm">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700 mb-1">Rekening Tujuan</p>
+                  <p>{rek.nama_bank || '-'} · <span className="tabular font-semibold">{rek.nomor_rekening}</span></p>
+                  <p className="text-ink-soft">a.n. {rek.nama_pemilik_rekening || rek.full_name}</p>
+                </div>
+              ) : (
+                <div className="card rounded-md2 p-3 mb-4 text-xs border-l-4 border-l-accent">
+                  Agen ini belum mengisi nomor rekening — cek manual sebelum transfer.
+                </div>
+              );
+            })()}
             <form onSubmit={handleCair} className="space-y-4" noValidate>
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Kategori</label>

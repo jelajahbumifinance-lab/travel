@@ -95,6 +95,13 @@ function AuthProvider({ children }) {
     await supabase.auth.signOut();
   }, []);
 
+  // Dipanggil halaman yang membiarkan pengguna mengubah profilnya sendiri
+  // (mis. PortalAgen.jsx) — supaya nama/dsb di header ikut ter-update tanpa
+  // perlu memuat ulang seluruh halaman.
+  const refreshProfile = useCallback(() => {
+    if (session?.user) loadProfile(session.user.id);
+  }, [session, loadProfile]);
+
   const value = {
     session,
     user: session?.user ?? null,
@@ -103,6 +110,7 @@ function AuthProvider({ children }) {
     loading,
     signIn,
     signOut,
+    refreshProfile,
     isAuthenticated: !!session && !!profile,
   };
 
