@@ -181,6 +181,7 @@ export default function CrmAgen() {
           no_hp: detailTarget.no_hp,
           paket_id: detailTarget.minat_paket_id || '',
           agen_id: detailTarget.agen_id || '',
+          agen_nama: detailTarget.agen?.full_name || '',
           lead_id: detailTarget.id,
         },
       },

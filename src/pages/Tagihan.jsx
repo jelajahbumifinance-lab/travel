@@ -514,8 +514,9 @@ export default function Tagihan() {
                     <label className="text-xs font-semibold text-ink-soft block mb-1.5">Didaftarkan oleh Agen (opsional)</label>
                     <SearchSelect
                       value={daftarForm.agen_id}
-                      onChange={(v) => setDaftarForm((f) => ({ ...f, agen_id: v }))}
+                      onChange={(v) => setDaftarForm((f) => ({ ...f, agen_id: v, agen_nama: '' }))}
                       fetchOptions={fetchAgenOptions}
+                      valueLabel={daftarForm.agen_nama}
                       placeholder="Ketik nama agen..."
                       emptyLabel="Langsung oleh staf (tanpa agen)"
                     />

@@ -24,6 +24,14 @@ export default function SearchSelect({
   emptyLabel = '— Tidak dipilih —',
   allowEmpty = true,
   disabled = false,
+  // Dalam mode fetchOptions, labelnya cuma dikenal dari hasil pencarian
+  // (`results`) — kalau `value` disetel dari luar (mis. terisi otomatis
+  // dari halaman lain lewat state router) tanpa pengguna pernah membuka
+  // dropdown ini, `results` masih kosong dan kotaknya terlihat kosong
+  // padahal nilainya sudah benar tersimpan. `valueLabel` jadi cadangan
+  // tampilan untuk kasus itu saja — begitu pengguna memilih ulang lewat
+  // dropdown, `results` sudah terisi dan cadangan ini tidak dipakai lagi.
+  valueLabel,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -36,6 +44,7 @@ export default function SearchSelect({
   const selectedLabel = !value ? '' : (
     options?.find((o) => o.value === value)?.label
     || results.find((o) => o.value === value)?.label
+    || valueLabel
     || ''
   );
 
