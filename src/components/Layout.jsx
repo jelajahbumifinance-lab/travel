@@ -5,21 +5,49 @@ import { BrandIcon } from './BrandMark';
 import NotificationBell from './NotificationBell';
 import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconAgen, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf } from './Icons';
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', Icon: IconDashboard },
-  { to: '/tagihan', label: 'Tagihan & Cicilan', Icon: IconTagihan },
-  { to: '/paket', label: 'Paket Keberangkatan', Icon: IconPaket },
-  { to: '/vendor', label: 'Vendor', Icon: IconVendor },
-  { to: '/agen', label: 'Agen & Mitra', Icon: IconAgen },
-  { to: '/komisi', label: 'Komisi Agen', Icon: IconKomisi },
-  { to: '/buku-kas', label: 'Buku Kas', Icon: IconBukuKas },
-  { to: '/rekening', label: 'Kas & Rekening', Icon: IconRekening },
-  // Tanpa daftar `roles`, menu dianggap milik semua staf — hanya menu yang
-  // memang perlu dibatasi (laporan manajemen, mengundang akun baru) yang
-  // menyebutkannya.
-  { to: '/laporan', label: 'Laporan Keuangan', Icon: IconLaporan, roles: ['direktur', 'admin_keuangan'] },
-  { to: '/jejak-audit', label: 'Jejak Audit', Icon: IconJejakAudit, roles: ['direktur', 'admin_keuangan'] },
-  { to: '/undang-staf', label: 'Undang Staf', Icon: IconUndangStaf, roles: ['direktur', 'admin_keuangan'] },
+// Menu dikelompokkan per fungsi (bukan satu daftar panjang rata) supaya
+// sidebar tetap mudah dipindai walau modulnya terus bertambah. Grup tanpa
+// label ("Utama") tampil polos di atas; grup lain dapat judul kecil.
+// Item tanpa daftar `roles` dianggap milik semua staf — hanya menu yang
+// memang perlu dibatasi (laporan manajemen, jejak audit, undang staf) yang
+// menyebutkannya.
+const NAV_GROUPS = [
+  {
+    label: null,
+    items: [
+      { to: '/dashboard', label: 'Dashboard', Icon: IconDashboard },
+    ],
+  },
+  {
+    label: 'Produk & Pasokan',
+    items: [
+      { to: '/paket', label: 'Paket Keberangkatan', Icon: IconPaket },
+      { to: '/vendor', label: 'Vendor', Icon: IconVendor },
+    ],
+  },
+  {
+    label: 'Keagenan',
+    items: [
+      { to: '/agen', label: 'Agen & Mitra', Icon: IconAgen },
+      { to: '/komisi', label: 'Komisi Agen', Icon: IconKomisi },
+    ],
+  },
+  {
+    label: 'Transaksi & Keuangan',
+    items: [
+      { to: '/tagihan', label: 'Tagihan & Cicilan', Icon: IconTagihan },
+      { to: '/buku-kas', label: 'Buku Kas', Icon: IconBukuKas },
+      { to: '/rekening', label: 'Kas & Rekening', Icon: IconRekening },
+      { to: '/laporan', label: 'Laporan Keuangan', Icon: IconLaporan, roles: ['direktur', 'admin_keuangan'] },
+    ],
+  },
+  {
+    label: 'Sistem & Pengawasan',
+    items: [
+      { to: '/jejak-audit', label: 'Jejak Audit', Icon: IconJejakAudit, roles: ['direktur', 'admin_keuangan'] },
+      { to: '/undang-staf', label: 'Undang Staf', Icon: IconUndangStaf, roles: ['direktur', 'admin_keuangan'] },
+    ],
+  },
 ];
 
 export default function Layout() {
@@ -41,22 +69,36 @@ export default function Layout() {
     agen: 'Agen/Mitra',
   };
 
-  const visibleNav = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile?.role));
+  // Grup yang seluruh isinya tersaring habis oleh peran (mis. kasir vs
+  // "Sistem & Pengawasan") disembunyikan total — judul grup kosong tanpa
+  // isi di bawahnya terlihat seperti bug, bukan sekadar menu kosong.
+  const visibleGroups = NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((item) => !item.roles || item.roles.includes(profile?.role)) }))
+    .filter((g) => g.items.length > 0);
 
   const NavList = ({ onNavigate }) => (
-    <nav className="flex flex-col gap-1">
-      {visibleNav.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          onClick={onNavigate}
-          className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-        >
-          <span className="w-5 flex items-center justify-center shrink-0">
-            <item.Icon />
-          </span>
-          {item.label}
-        </NavLink>
+    <nav className="flex flex-col gap-4">
+      {visibleGroups.map((group, i) => (
+        <div key={group.label || `grup-${i}`}>
+          {group.label && (
+            <p className="text-[10px] font-bold text-ink-soft px-3 mb-1 uppercase tracking-wider">{group.label}</p>
+          )}
+          <div className="flex flex-col gap-1">
+            {group.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={onNavigate}
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <item.Icon />
+                </span>
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
       ))}
     </nav>
   );
@@ -69,7 +111,6 @@ export default function Layout() {
           <span className="font-display font-bold flex-1 text-sm">JBI Finance</span>
         </Link>
 
-        <p className="text-[11px] font-bold text-ink-soft px-3 mb-2 uppercase tracking-wider">Menu</p>
         <div className="flex-1 overflow-y-auto">
           <NavList />
         </div>
