@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +28,16 @@ export default function DaftarAgen() {
   const [akun, setAkun] = useState({ email: '', password: '' });
   const [profil, setProfil] = useState({ full_name: '', no_hp: '' });
   const [error, setError] = useState('');
+
+  // Sesi bisa aktif BELAKANGAN, bukan cuma saat komponen ini pertama kali
+  // dirender — mis. tautan konfirmasi email membawa token yang baru
+  // diproses AuthContext beberapa saat setelah halaman ini dimuat.
+  // useState awal saja tidak cukup karena tidak bereaksi pada perubahan
+  // sesudahnya; tanpa efek ini pengguna tertahan di langkah 1 walau
+  // sudah login.
+  useEffect(() => {
+    if (session) setLangkah(2);
+  }, [session]);
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [berhasil, setBerhasil] = useState(false);

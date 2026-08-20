@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +25,12 @@ export default function DaftarJamaah() {
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [berhasil, setBerhasil] = useState(null);
+
+  // Sama seperti DaftarAgen.jsx — sesi bisa aktif belakangan (tautan
+  // konfirmasi email), useState awal saja tidak bereaksi pada itu.
+  useEffect(() => {
+    if (session) setLangkah(2);
+  }, [session]);
 
   async function handleDaftar(e) {
     e.preventDefault();
