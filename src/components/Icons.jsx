@@ -123,3 +123,11 @@ export function IconUndangStaf(props) {
     </svg>
   );
 }
+
+export function IconLeads(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 4h16l-6 8v6l-4 2v-8L4 4Z" />
+    </svg>
+  );
+}

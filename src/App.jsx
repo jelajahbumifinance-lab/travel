@@ -7,6 +7,7 @@ import PortalLayout from './components/PortalLayout';
 import Login from './pages/Login';
 import DaftarAgen from './pages/DaftarAgen';
 import DaftarJamaah from './pages/DaftarJamaah';
+import MinatPaket from './pages/MinatPaket';
 
 // Halaman staf dimuat lazy — agen/jamaah tidak perlu ikut mengunduh kode
 // buku kas yang tidak bisa mereka buka.
@@ -21,6 +22,7 @@ const ManifestPaket = lazy(() => import('./pages/ManifestPaket'));
 const OperasionalPaket = lazy(() => import('./pages/OperasionalPaket'));
 const Komisi = lazy(() => import('./pages/Komisi'));
 const Agen = lazy(() => import('./pages/Agen'));
+const Leads = lazy(() => import('./pages/Leads'));
 const PortalAgen = lazy(() => import('./pages/PortalAgen'));
 const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
@@ -44,6 +46,7 @@ export default function App() {
           {/* Publik — agen/mitra dan jamaah mendaftar sendiri, belum punya akun apa pun */}
           <Route path="/daftar-agen" element={<DaftarAgen />} />
           <Route path="/daftar-jamaah" element={<DaftarJamaah />} />
+          <Route path="/minat" element={<MinatPaket />} />
 
           <Route
             element={
@@ -65,6 +68,7 @@ export default function App() {
             <Route path="/vendor" element={<Vendor />} />
             <Route path="/komisi" element={<Komisi />} />
             <Route path="/agen" element={<Agen />} />
+            <Route path="/leads" element={<Leads />} />
             <Route path="/buku-kas" element={<BukuKas />} />
             <Route path="/rekening" element={<Rekening />} />
             <Route

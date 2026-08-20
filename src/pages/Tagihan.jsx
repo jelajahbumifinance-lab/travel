@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID, formatRibuan } from '../lib/format';
@@ -38,6 +39,8 @@ const STATUS_FILTER_OPTIONS = [
 
 export default function Tagihan() {
   const { profile, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const canWrite = ['direktur', 'admin_keuangan', 'kasir'].includes(profile?.role);
   const canVoid = ['direktur', 'admin_keuangan'].includes(profile?.role);
 
@@ -149,12 +152,27 @@ export default function Tagihan() {
   }, [rows, statusFilter, paketFilter, pendaftaranIdsOnDate, search]);
 
   // ---- Daftarkan jamaah ----
-  function openDaftar() {
+  function openDaftar(prefill) {
     setModeJamaahBaru(true);
-    setDaftarForm({ jamaah_id: '', nama: '', nik: '', no_hp: '', agen_id: '', paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '' });
+    setDaftarForm({
+      jamaah_id: '', nama: '', nik: '', no_hp: '', agen_id: '', paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '',
+      ...prefill,
+    });
     setDaftarError('');
     setShowDaftar(true);
   }
+
+  // Datang dari halaman Leads — "Daftarkan sebagai Jamaah" membawa data
+  // lead lewat state router, bukan query string (supaya tidak nyangkut di
+  // riwayat/bookmark). Dibersihkan lagi lewat replace supaya refresh atau
+  // tombol kembali browser tidak diam-diam membuka modal ini lagi.
+  useEffect(() => {
+    if (location.state?.prefillDaftar) {
+      openDaftar(location.state.prefillDaftar);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   function pilihPaket(paketId) {
     const p = paketList.find((x) => x.id === paketId);
@@ -213,6 +231,12 @@ export default function Tagihan() {
     if (pendaftaranErr) {
       setDaftarError(pendaftaranErr.message);
       return;
+    }
+    // Lead yang tadinya membawa form ini (lihat komponen Leads) sudah
+    // benar-benar jadi jamaah — tandai supaya tidak muncul lagi di corong
+    // leads yang masih perlu ditindaklanjuti.
+    if (daftarForm.lead_id) {
+      await supabase.from('leads').update({ status: 'JADI_JAMAAH' }).eq('id', daftarForm.lead_id);
     }
     setShowDaftar(false);
     load();
@@ -312,7 +336,7 @@ export default function Tagihan() {
         {canWrite && (
           <button
             type="button"
-            onClick={openDaftar}
+            onClick={() => openDaftar()}
             className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm"
           >
             + Daftarkan Jamaah
