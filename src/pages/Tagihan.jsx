@@ -65,7 +65,7 @@ export default function Tagihan() {
   const [showDaftar, setShowDaftar] = useState(false);
   const [modeJamaahBaru, setModeJamaahBaru] = useState(true);
   const [daftarForm, setDaftarForm] = useState({
-    jamaah_id: '', nama: '', nik: '', no_hp: '', agen_id: '',
+    jamaah_id: '', nama: '', nik: '', no_hp: '', jenis_kelamin: '', agen_id: '',
     paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '',
   });
   const [daftarError, setDaftarError] = useState('');
@@ -159,7 +159,7 @@ export default function Tagihan() {
     // terisi otomatis dari harga_default kalau tidak disamakan di sini juga.
     const paketPrefill = prefill?.paket_id ? paketList.find((p) => p.id === prefill.paket_id) : null;
     setDaftarForm({
-      jamaah_id: '', nama: '', nik: '', no_hp: '', agen_id: '', paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '',
+      jamaah_id: '', nama: '', nik: '', no_hp: '', jenis_kelamin: '', agen_id: '', paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '',
       ...prefill,
       total_tagihan: paketPrefill ? formatRibuan(String(paketPrefill.harga_default)) : (prefill?.total_tagihan || ''),
     });
@@ -215,6 +215,7 @@ export default function Tagihan() {
           nama: daftarForm.nama.trim(),
           nik: daftarForm.nik.trim() || null,
           no_hp: daftarForm.no_hp.trim() || null,
+          jenis_kelamin: daftarForm.jenis_kelamin || null,
           agen_id: daftarForm.agen_id || null,
           created_by: user.id,
         })
@@ -517,6 +518,19 @@ export default function Tagihan() {
                       onChange={(e) => setDaftarForm((f) => ({ ...f, no_hp: e.target.value }))}
                       className="field w-full rounded-md2 px-4 py-2.5 text-sm"
                     />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis Kelamin (opsional)</label>
+                    <select
+                      value={daftarForm.jenis_kelamin}
+                      onChange={(e) => setDaftarForm((f) => ({ ...f, jenis_kelamin: e.target.value }))}
+                      className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+                    >
+                      <option value="">— Belum diisi —</option>
+                      <option value="L">Laki-laki</option>
+                      <option value="P">Perempuan</option>
+                    </select>
+                    <p className="text-[11px] text-ink-soft mt-1">Dipakai di menu Roomlist untuk membantu memisahkan jamaah yang bukan mahram.</p>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-ink-soft block mb-1.5">Didaftarkan oleh Agen (opsional)</label>

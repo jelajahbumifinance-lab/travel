@@ -7,6 +7,16 @@ import { Aksi, GrupAksi, Pil } from '../components/ui';
 const KATEGORI_LABEL = { QUAD: 'Quad', TRIPLE: 'Triple', DOUBLE: 'Double', SINGLE: 'Single' };
 const KAPASITAS = { QUAD: 4, TRIPLE: 3, DOUBLE: 2, SINGLE: 1 };
 
+// Sekadar info visual untuk staf, bukan aturan yang dipaksakan sistem —
+// pasangan suami-istri/keluarga memang wajar sekamar campuran, dan
+// sistem tidak tahu siapa mahram siapa. Warna beda supaya gampang
+// dipindai sekilas tanpa perlu baca teksnya satu-satu.
+function LabelGender({ jenisKelamin }) {
+  if (jenisKelamin === 'L') return <span className="italic text-[11px] text-blue-600 ml-1">Laki-laki</span>;
+  if (jenisKelamin === 'P') return <span className="italic text-[11px] text-pink-600 ml-1">Perempuan</span>;
+  return null;
+}
+
 const ROOM_KOSONG = { kategori_kamar: 'QUAD', kota: '', lokasi: '', nomor_kamar: '', catatan: '' };
 const HARI_KOSONG = { hari: '', judul: '', deskripsi: '' };
 
@@ -45,8 +55,8 @@ export default function OperasionalPaket() {
     setError('');
     const [paketRes, pendaftaranRes, roomRes, itineraryRes] = await Promise.all([
       supabase.from('paket').select('id, nama, tanggal_berangkat').eq('id', paketId).maybeSingle(),
-      supabase.from('pendaftaran').select('jamaah(id, nama)').eq('paket_id', paketId).neq('status', 'BATAL'),
-      supabase.from('roomlist').select('id, kategori_kamar, kota, lokasi, nomor_kamar, catatan, roomlist_anggota(id, jamaah_id, jamaah(nama))').eq('paket_id', paketId),
+      supabase.from('pendaftaran').select('jamaah(id, nama, jenis_kelamin)').eq('paket_id', paketId).neq('status', 'BATAL'),
+      supabase.from('roomlist').select('id, kategori_kamar, kota, lokasi, nomor_kamar, catatan, roomlist_anggota(id, jamaah_id, jamaah(nama, jenis_kelamin))').eq('paket_id', paketId),
       supabase.from('itinerary_item').select('id, hari, judul, deskripsi').eq('paket_id', paketId).order('hari'),
     ]);
     if (paketRes.error || pendaftaranRes.error || roomRes.error || itineraryRes.error) {
@@ -127,6 +137,16 @@ export default function OperasionalPaket() {
       if (!r.kota || r.kota.trim().toLowerCase() !== kotaTarget) return;
       (r.roomlist_anggota || []).forEach((a) => { konflikKota[a.jamaah_id] = r; });
     });
+  }
+
+  // Jamaah lama belum punya jenis_kelamin terisi (kolom baru, lihat
+  // sql/0026) — daripada memaksa staf bolak-balik ke halaman lain,
+  // bisa langsung diisi di sini juga, tempat paling relevan datanya
+  // dibutuhkan (mengatur siapa sekamar dengan siapa).
+  async function setJenisKelamin(jamaahId, nilai) {
+    const { error: err } = await supabase.from('jamaah').update({ jenis_kelamin: nilai }).eq('id', jamaahId);
+    if (err) { window.alert('Gagal menyimpan jenis kelamin: ' + err.message); return; }
+    setJamaahList((prev) => prev.map((j) => (j.id === jamaahId ? { ...j, jenis_kelamin: nilai } : j)));
   }
 
   function toggleAnggota(jamaahId) {
@@ -258,7 +278,12 @@ export default function OperasionalPaket() {
                   </div>
                   <div className="text-sm space-y-1 mb-3 min-h-[24px]">
                     {anggota.length === 0 && <p className="text-ink-soft text-xs">Belum ada anggota.</p>}
-                    {anggota.map((a) => <p key={a.id}>· {a.jamaah?.nama}</p>)}
+                    {anggota.map((a) => (
+                      <p key={a.id}>· {a.jamaah?.nama}<LabelGender jenisKelamin={a.jamaah?.jenis_kelamin} /></p>
+                    ))}
+                    {new Set(anggota.map((a) => a.jamaah?.jenis_kelamin).filter(Boolean)).size > 1 && (
+                      <p className="text-[11px] text-brick-600 font-semibold mt-1">⚠ Campuran laki-laki &amp; perempuan — pastikan sudah mahram.</p>
+                    )}
                   </div>
                   {r.catatan && <p className="text-[11px] text-ink-soft mb-3 italic">{r.catatan}</p>}
                   {canManage && (
@@ -365,17 +390,33 @@ export default function OperasionalPaket() {
               {jamaahList.map((j) => {
                 const konflik = konflikKota[j.id];
                 return (
-                  <label key={j.id} className={`flex items-center gap-2.5 px-2 py-2 rounded-md2 text-sm ${konflik ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent-soft cursor-pointer'}`}>
-                    <input type="checkbox" checked={anggotaTerpilih.has(j.id)} disabled={!!konflik} onChange={() => toggleAnggota(j.id)} className="w-4 h-4" />
-                    <span>
-                      {j.nama}
+                  <div
+                    key={j.id}
+                    onClick={() => toggleAnggota(j.id)}
+                    className={`flex items-center gap-2.5 px-2 py-2 rounded-md2 text-sm ${konflik ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent-soft cursor-pointer'}`}
+                  >
+                    <input type="checkbox" checked={anggotaTerpilih.has(j.id)} disabled={!!konflik} readOnly className="w-4 h-4" />
+                    <div className="flex-1 min-w-0">
+                      <span>{j.nama}<LabelGender jenisKelamin={j.jenis_kelamin} /></span>
                       {konflik && (
                         <span className="block text-[11px] text-ink-soft">
                           Sudah di {KATEGORI_LABEL[konflik.kategori_kamar]}{konflik.nomor_kamar ? ` No. ${konflik.nomor_kamar}` : ''}{konflik.lokasi ? ` — ${konflik.lokasi}` : ''} ({konflik.kota})
                         </span>
                       )}
-                    </span>
-                  </label>
+                    </div>
+                    {!j.jenis_kelamin && (
+                      <select
+                        value=""
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setJenisKelamin(j.id, e.target.value)}
+                        className="text-[11px] rounded-md2 border border-rule bg-paper-raised px-1.5 py-1 shrink-0"
+                      >
+                        <option value="" disabled>Set L/P</option>
+                        <option value="L">Laki-laki</option>
+                        <option value="P">Perempuan</option>
+                      </select>
+                    )}
+                  </div>
                 );
               })}
             </div>
