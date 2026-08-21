@@ -17,6 +17,15 @@ function LabelGender({ jenisKelamin }) {
   return null;
 }
 
+// Itinerary cuma menyimpan nomor hari ("Hari 3"), bukan tanggal
+// kalender — dihitung dari tanggal_berangkat paket + (hari - 1).
+function tanggalUntukHari(tanggalBerangkat, hari) {
+  if (!tanggalBerangkat) return null;
+  const d = new Date(tanggalBerangkat);
+  d.setDate(d.getDate() + (hari - 1));
+  return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 const ROOM_KOSONG = { kategori_kamar: 'QUAD', kota: '', lokasi: '', nomor_kamar: '', catatan: '' };
 const HARI_KOSONG = { hari: '', judul: '', deskripsi: '' };
 const JENIS_PENERBANGAN_LABEL = { BERANGKAT: 'Berangkat', PULANG: 'Pulang' };
@@ -407,24 +416,28 @@ export default function OperasionalPaket() {
           )}
           {itinerary.length === 0 && <div className="card rounded-xl2 p-10 text-center text-ink-soft text-sm">Belum ada jadwal perjalanan untuk paket ini.</div>}
           <div className="space-y-3">
-            {itinerary.map((it) => (
-              <div key={it.id} className="card rounded-xl2 p-5 flex items-start gap-4">
-                <div className="w-16 shrink-0 text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Hari</p>
-                  <p className="font-display text-2xl font-bold text-orange-500">{it.hari}</p>
+            {itinerary.map((it) => {
+              const tanggalHari = tanggalUntukHari(paket.tanggal_berangkat, it.hari);
+              return (
+                <div key={it.id} className="card rounded-xl2 p-5 flex items-start gap-4">
+                  <div className="w-16 shrink-0 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Hari</p>
+                    <p className="font-display text-2xl font-bold text-orange-500">{it.hari}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{it.judul}</p>
+                    {tanggalHari && <p className="text-xs text-ink-soft mt-0.5">{tanggalHari}</p>}
+                    {it.deskripsi && <p className="text-sm text-ink-soft mt-1 whitespace-pre-line">{it.deskripsi}</p>}
+                  </div>
+                  {canManage && (
+                    <GrupAksi>
+                      <Aksi onClick={() => openEditHari(it)}>Ubah</Aksi>
+                      <Aksi jenis="bahaya" onClick={() => handleHapusHari(it)}>Hapus</Aksi>
+                    </GrupAksi>
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold">{it.judul}</p>
-                  {it.deskripsi && <p className="text-sm text-ink-soft mt-1 whitespace-pre-line">{it.deskripsi}</p>}
-                </div>
-                {canManage && (
-                  <GrupAksi>
-                    <Aksi onClick={() => openEditHari(it)}>Ubah</Aksi>
-                    <Aksi jenis="bahaya" onClick={() => handleHapusHari(it)}>Hapus</Aksi>
-                  </GrupAksi>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

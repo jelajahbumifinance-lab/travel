@@ -17,6 +17,17 @@ function pecahKegiatan(deskripsi) {
     .filter(Boolean);
 }
 
+// Itinerary cuma menyimpan nomor hari ("Hari 3"), bukan tanggal
+// kalender — gampang lupa hari ke-3 itu tanggal berapa. Dihitung dari
+// tanggal_berangkat paket + (hari - 1), tidak perlu kolom tanggal
+// terpisah di tiap baris itinerary.
+function tanggalUntukHari(tanggalBerangkat, hari) {
+  if (!tanggalBerangkat) return null;
+  const d = new Date(tanggalBerangkat);
+  d.setDate(d.getDate() + (hari - 1));
+  return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 const KATEGORI_KAMAR_LABEL = { QUAD: 'Quad', TRIPLE: 'Triple', DOUBLE: 'Double', SINGLE: 'Single' };
 const JENIS_PENERBANGAN_LABEL = { BERANGKAT: 'Berangkat', PULANG: 'Pulang' };
 
@@ -291,6 +302,7 @@ export default function PortalJamaah() {
               <div className="p-5 space-y-4">
                 {itinerary.map((it) => {
                   const kegiatan = pecahKegiatan(it.deskripsi);
+                  const tanggalHari = tanggalUntukHari(row.tanggal_berangkat, it.hari);
                   return (
                     <div key={it.id} className="flex items-start gap-3">
                       <div className="w-12 shrink-0 text-center">
@@ -299,6 +311,7 @@ export default function PortalJamaah() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{it.judul}</p>
+                        {tanggalHari && <p className="text-[11px] text-ink-soft mt-0.5">{tanggalHari}</p>}
                         {kegiatan.length > 0 && (
                           <ul className="mt-1 space-y-0.5">
                             {kegiatan.map((k, i) => (
