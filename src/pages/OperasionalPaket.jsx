@@ -7,7 +7,7 @@ import { Aksi, GrupAksi, Pil } from '../components/ui';
 const KATEGORI_LABEL = { QUAD: 'Quad', TRIPLE: 'Triple', DOUBLE: 'Double', SINGLE: 'Single' };
 const KAPASITAS = { QUAD: 4, TRIPLE: 3, DOUBLE: 2, SINGLE: 1 };
 
-const ROOM_KOSONG = { kategori_kamar: 'QUAD', lokasi: '', nomor_kamar: '', catatan: '' };
+const ROOM_KOSONG = { kategori_kamar: 'QUAD', kota: '', lokasi: '', nomor_kamar: '', catatan: '' };
 const HARI_KOSONG = { hari: '', judul: '', deskripsi: '' };
 
 export default function OperasionalPaket() {
@@ -46,7 +46,7 @@ export default function OperasionalPaket() {
     const [paketRes, pendaftaranRes, roomRes, itineraryRes] = await Promise.all([
       supabase.from('paket').select('id, nama, tanggal_berangkat').eq('id', paketId).maybeSingle(),
       supabase.from('pendaftaran').select('jamaah(id, nama)').eq('paket_id', paketId).neq('status', 'BATAL'),
-      supabase.from('roomlist').select('id, kategori_kamar, lokasi, nomor_kamar, catatan, roomlist_anggota(id, jamaah_id, jamaah(nama))').eq('paket_id', paketId),
+      supabase.from('roomlist').select('id, kategori_kamar, kota, lokasi, nomor_kamar, catatan, roomlist_anggota(id, jamaah_id, jamaah(nama))').eq('paket_id', paketId),
       supabase.from('itinerary_item').select('id, hari, judul, deskripsi').eq('paket_id', paketId).order('hari'),
     ]);
     if (paketRes.error || pendaftaranRes.error || roomRes.error || itineraryRes.error) {
@@ -56,7 +56,7 @@ export default function OperasionalPaket() {
     }
     setPaket(paketRes.data);
     setJamaahList((pendaftaranRes.data || []).map((p) => p.jamaah).filter(Boolean));
-    setRooms((roomRes.data || []).sort((a, b) => (a.lokasi || '').localeCompare(b.lokasi || '')));
+    setRooms((roomRes.data || []).sort((a, b) => (a.kota || '').localeCompare(b.kota || '') || (a.lokasi || '').localeCompare(b.lokasi || '')));
     setItinerary(itineraryRes.data || []);
     setLoading(false);
   }, [paketId]);
@@ -73,7 +73,7 @@ export default function OperasionalPaket() {
 
   function openEditRoom(r) {
     setEditRoomId(r.id);
-    setRoomForm({ kategori_kamar: r.kategori_kamar, lokasi: r.lokasi || '', nomor_kamar: r.nomor_kamar || '', catatan: r.catatan || '' });
+    setRoomForm({ kategori_kamar: r.kategori_kamar, kota: r.kota || '', lokasi: r.lokasi || '', nomor_kamar: r.nomor_kamar || '', catatan: r.catatan || '' });
     setRoomFormError('');
     setShowRoomForm(true);
   }
@@ -84,6 +84,7 @@ export default function OperasionalPaket() {
     const payload = {
       paket_id: paketId,
       kategori_kamar: roomForm.kategori_kamar,
+      kota: roomForm.kota.trim() || null,
       lokasi: roomForm.lokasi.trim() || null,
       nomor_kamar: roomForm.nomor_kamar.trim() || null,
       catatan: roomForm.catatan.trim() || null,
@@ -111,24 +112,25 @@ export default function OperasionalPaket() {
     setAnggotaError('');
   }
 
-  // Satu jamaah wajar punya kamar terpisah di lokasi BERBEDA (Makkah vs
-  // Madinah, dua leg perjalanan) tapi tidak boleh dobel kamar di lokasi
-  // yang SAMA — dihitung dari kamar lain (bukan kamar yang sedang
-  // dibuka) yang lokasinya cocok (trim+lower, sama seperti pengecekan
-  // di database, lihat sql/0024_cegah_dobel_kamar.sql). Ini cuma
-  // pencegahan di tampilan; batas sesungguhnya ada di trigger database.
-  const konflikLokasi = {};
-  if (anggotaTarget?.lokasi?.trim()) {
-    const lokasiTarget = anggotaTarget.lokasi.trim().toLowerCase();
+  // Satu jamaah wajar punya kamar terpisah di KOTA berbeda (Makkah vs
+  // Madinah, dua leg perjalanan) tapi tidak boleh dobel kamar di kota
+  // yang SAMA — walau hotelnya beda (mis. 3 hotel berbeda di Madinah).
+  // Dihitung dari kamar lain (bukan kamar yang sedang dibuka) yang
+  // kotanya cocok (trim+lower, sama seperti pengecekan di database,
+  // lihat sql/0025_roomlist_kota.sql). Ini cuma pencegahan di tampilan;
+  // batas sesungguhnya ada di trigger database.
+  const konflikKota = {};
+  if (anggotaTarget?.kota?.trim()) {
+    const kotaTarget = anggotaTarget.kota.trim().toLowerCase();
     rooms.forEach((r) => {
       if (r.id === anggotaTarget.id) return;
-      if (!r.lokasi || r.lokasi.trim().toLowerCase() !== lokasiTarget) return;
-      (r.roomlist_anggota || []).forEach((a) => { konflikLokasi[a.jamaah_id] = r; });
+      if (!r.kota || r.kota.trim().toLowerCase() !== kotaTarget) return;
+      (r.roomlist_anggota || []).forEach((a) => { konflikKota[a.jamaah_id] = r; });
     });
   }
 
   function toggleAnggota(jamaahId) {
-    if (konflikLokasi[jamaahId]) return;
+    if (konflikKota[jamaahId]) return;
     setAnggotaTerpilih((prev) => {
       const next = new Set(prev);
       if (next.has(jamaahId)) next.delete(jamaahId); else next.add(jamaahId);
@@ -247,7 +249,10 @@ export default function OperasionalPaket() {
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div>
                       <p className="font-semibold">{KATEGORI_LABEL[r.kategori_kamar]}{r.nomor_kamar ? ` — No. ${r.nomor_kamar}` : ''}</p>
-                      <p className="text-[11px] text-ink-soft">{r.lokasi || 'Lokasi belum diisi'}</p>
+                      <p className="text-[11px] text-ink-soft">
+                        {r.kota ? <span className="font-semibold text-accent-text">{r.kota}</span> : <span className="italic">Kota belum diisi</span>}
+                        {r.lokasi ? ` · ${r.lokasi}` : ''}
+                      </p>
                     </div>
                     <Pil nada={penuh ? 'ok' : 'warn'}>{anggota.length} / {kapasitas}</Pil>
                   </div>
@@ -318,8 +323,13 @@ export default function OperasionalPaket() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Lokasi</label>
-                <input type="text" placeholder="mis. Hotel Makkah, Hotel Madinah" value={roomForm.lokasi} onChange={(e) => setRoomForm((f) => ({ ...f, lokasi: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Kota</label>
+                <input type="text" placeholder="mis. Madinah, Makkah" value={roomForm.kota} onChange={(e) => setRoomForm((f) => ({ ...f, kota: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                <p className="text-[11px] text-ink-soft mt-1">Dipakai untuk mencegah satu jamaah dobel kamar di kota yang sama.</p>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nama Hotel (opsional)</label>
+                <input type="text" placeholder="mis. Grand Plaza, Al Ansar" value={roomForm.lokasi} onChange={(e) => setRoomForm((f) => ({ ...f, lokasi: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nomor Kamar (opsional)</label>
@@ -348,12 +358,12 @@ export default function OperasionalPaket() {
               <button type="button" onClick={() => setAnggotaTarget(null)} aria-label="Tutup" className="text-xl">×</button>
             </div>
             <p className="text-xs text-ink-soft mb-4">
-              {KATEGORI_LABEL[anggotaTarget.kategori_kamar]} · {anggotaTerpilih.size} / {KAPASITAS[anggotaTarget.kategori_kamar]} dipilih
+              {KATEGORI_LABEL[anggotaTarget.kategori_kamar]}{anggotaTarget.kota ? ` · ${anggotaTarget.kota}` : ''} · {anggotaTerpilih.size} / {KAPASITAS[anggotaTarget.kategori_kamar]} dipilih
             </p>
             {jamaahList.length === 0 && <p className="text-sm text-ink-soft mb-4">Belum ada jamaah terdaftar di paket ini.</p>}
             <div className="space-y-1 mb-4 max-h-72 overflow-y-auto">
               {jamaahList.map((j) => {
-                const konflik = konflikLokasi[j.id];
+                const konflik = konflikKota[j.id];
                 return (
                   <label key={j.id} className={`flex items-center gap-2.5 px-2 py-2 rounded-md2 text-sm ${konflik ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent-soft cursor-pointer'}`}>
                     <input type="checkbox" checked={anggotaTerpilih.has(j.id)} disabled={!!konflik} onChange={() => toggleAnggota(j.id)} className="w-4 h-4" />
@@ -361,7 +371,7 @@ export default function OperasionalPaket() {
                       {j.nama}
                       {konflik && (
                         <span className="block text-[11px] text-ink-soft">
-                          Sudah di {KATEGORI_LABEL[konflik.kategori_kamar]}{konflik.nomor_kamar ? ` No. ${konflik.nomor_kamar}` : ''} — {konflik.lokasi}
+                          Sudah di {KATEGORI_LABEL[konflik.kategori_kamar]}{konflik.nomor_kamar ? ` No. ${konflik.nomor_kamar}` : ''}{konflik.lokasi ? ` — ${konflik.lokasi}` : ''} ({konflik.kota})
                         </span>
                       )}
                     </span>
