@@ -7,12 +7,16 @@ import { BrandIcon, BrandWordmark } from '../components/BrandMark';
 /**
  * Pendaftaran mandiri jamaah — dua langkah:
  *   1. Buat akun (email + password)
- *   2. Hubungkan ke data jamaah lewat NIK + No. HP (RPC link_jamaah_account)
+ *   2. Hubungkan ke data jamaah lewat Nama Lengkap + No. HP (RPC
+ *      link_jamaah_account) — sengaja bukan NIK (sql/0023): banyak
+ *      orang tidak hafal nomor KTP sendiri. Nama dipakai sebagai
+ *      pembanding kedua (bukan No. HP saja) karena satu nomor HP sering
+ *      dipakai bersama oleh satu keluarga yang daftar Umrah bareng.
  *
  * Beda dari DaftarAgen.jsx: di sini akun LANGSUNG aktif kalau cocok,
- * karena kecocokan NIK + No. HP terhadap data yang staf sudah input itu
- * sendiri adalah verifikasinya — tidak ada data pembanding untuk agen,
- * makanya agen perlu persetujuan admin manual, jamaah tidak.
+ * karena kecocokan Nama + No. HP terhadap data yang staf sudah input
+ * itu sendiri adalah verifikasinya — tidak ada data pembanding untuk
+ * agen, makanya agen perlu persetujuan admin manual, jamaah tidak.
  */
 export default function DaftarJamaah() {
   const navigate = useNavigate();
@@ -20,7 +24,7 @@ export default function DaftarJamaah() {
 
   const [langkah, setLangkah] = useState(session ? 2 : 1);
   const [akun, setAkun] = useState({ email: '', password: '' });
-  const [verifikasi, setVerifikasi] = useState({ nik: '', no_hp: '' });
+  const [verifikasi, setVerifikasi] = useState({ nama: '', no_hp: '' });
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,13 +76,13 @@ export default function DaftarJamaah() {
   async function handleHubungkan(e) {
     e.preventDefault();
     setError('');
-    if (!verifikasi.nik.trim() || !verifikasi.no_hp.trim()) {
-      setError('NIK dan No. HP wajib diisi.');
+    if (!verifikasi.nama.trim() || !verifikasi.no_hp.trim()) {
+      setError('Nama Lengkap dan No. HP wajib diisi.');
       return;
     }
     setBusy(true);
     const { data, error: rpcErr } = await supabase.rpc('link_jamaah_account', {
-      p_nik: verifikasi.nik.trim(),
+      p_nama: verifikasi.nama.trim(),
       p_no_hp: verifikasi.no_hp.trim(),
     });
     setBusy(false);
@@ -154,12 +158,12 @@ export default function DaftarJamaah() {
             </p>
             <form onSubmit={handleHubungkan} className="space-y-4" noValidate>
               <div>
-                <label htmlFor="nik" className="text-xs font-semibold text-ink-soft block mb-1.5">NIK</label>
+                <label htmlFor="nama" className="text-xs font-semibold text-ink-soft block mb-1.5">Nama Lengkap</label>
                 <input
-                  id="nik" type="text" inputMode="numeric"
-                  value={verifikasi.nik}
-                  onChange={(e) => setVerifikasi((f) => ({ ...f, nik: e.target.value.replace(/\D/g, '') }))}
-                  className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm"
+                  id="nama" type="text" autoComplete="name"
+                  value={verifikasi.nama}
+                  onChange={(e) => setVerifikasi((f) => ({ ...f, nama: e.target.value }))}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
                 />
               </div>
               <div>
