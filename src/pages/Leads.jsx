@@ -416,6 +416,7 @@ export default function Leads() {
                   </th>
                 )}
                 <th className="p-4">Nama</th>
+                <th className="p-4 whitespace-nowrap">Jenis Kelamin</th>
                 <th className="p-4 whitespace-nowrap">Minat Paket</th>
                 <th className="p-4 whitespace-nowrap text-center">Pax</th>
                 <th className="p-4 whitespace-nowrap">Sumber</th>
@@ -427,10 +428,10 @@ export default function Leads() {
             </thead>
             <tbody className="divide-y divide-rule">
               {loading && (
-                <tr><td colSpan={9} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
+                <tr><td colSpan={10} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
               )}
               {!loading && pageRows.length === 0 && (
-                <tr><td colSpan={9} className="p-10 text-center text-ink-soft">Tidak ada lead yang cocok.</td></tr>
+                <tr><td colSpan={10} className="p-10 text-center text-ink-soft">Tidak ada lead yang cocok.</td></tr>
               )}
               {pageRows.map((r) => {
                 const wa = waLink(r.no_hp);
@@ -443,7 +444,7 @@ export default function Leads() {
                       </td>
                     )}
                     <td className="p-4">
-                      <p className="font-medium">{r.nama}<LabelGender jenisKelamin={r.jenis_kelamin} /></p>
+                      <p className="font-medium">{r.nama}</p>
                       <div className="flex items-center gap-1.5">
                         <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
                         {wa && (
@@ -461,6 +462,11 @@ export default function Leads() {
                           </a>
                         )}
                       </div>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      {r.jenis_kelamin === 'L' && <span className="text-xs font-semibold text-blue-600">Laki-laki</span>}
+                      {r.jenis_kelamin === 'P' && <span className="text-xs font-semibold text-pink-600">Perempuan</span>}
+                      {!r.jenis_kelamin && <span className="text-xs text-ink-soft">-</span>}
                     </td>
                     <td className="p-4">
                       {r.paket?.nama || '-'}

@@ -456,6 +456,7 @@ export default function Tagihan() {
             <thead>
               <tr className="text-xs uppercase tracking-wider font-semibold text-ink-soft border-b border-rule">
                 <th className="p-4">Jamaah</th>
+                <th className="p-4 whitespace-nowrap">Jenis Kelamin</th>
                 <th className="p-4 whitespace-nowrap">Paket</th>
                 <th className="p-4 whitespace-nowrap text-right">Total</th>
                 <th className="p-4 whitespace-nowrap text-right">Terbayar</th>
@@ -467,22 +468,23 @@ export default function Tagihan() {
             </thead>
             <tbody className="divide-y divide-rule">
               {loading && (
-                <tr><td colSpan={8} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
               )}
               {!loading && filteredRows.length === 0 && (
-                <tr><td colSpan={8} className="p-10 text-center text-ink-soft">Tidak ada pendaftaran yang cocok.</td></tr>
+                <tr><td colSpan={9} className="p-10 text-center text-ink-soft">Tidak ada pendaftaran yang cocok.</td></tr>
               )}
               {filteredRows.map((r) => {
                 const lunas = r.computed_status === 'LUNAS' || r.computed_status === 'BATAL';
                 return (
                   <tr key={r.id}>
                     <td className="p-4">
-                      <p className="font-medium">
-                        {r.jamaah_nama}
-                        {r.jamaah_jenis_kelamin === 'L' && <span className="italic text-[11px] text-blue-600 ml-1">Laki-laki</span>}
-                        {r.jamaah_jenis_kelamin === 'P' && <span className="italic text-[11px] text-pink-600 ml-1">Perempuan</span>}
-                      </p>
+                      <p className="font-medium">{r.jamaah_nama}</p>
                       <p className="text-[11px] text-ink-soft">{r.jamaah_no_hp || '-'}</p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      {r.jamaah_jenis_kelamin === 'L' && <span className="text-xs font-semibold text-blue-600">Laki-laki</span>}
+                      {r.jamaah_jenis_kelamin === 'P' && <span className="text-xs font-semibold text-pink-600">Perempuan</span>}
+                      {!r.jamaah_jenis_kelamin && <span className="text-xs text-ink-soft">-</span>}
                     </td>
                     <td className="p-4 whitespace-nowrap">{r.paket_nama}</td>
                     <td className="tabular p-4 text-right whitespace-nowrap">{rupiah(r.total_tagihan)}</td>
