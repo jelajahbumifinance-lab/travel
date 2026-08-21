@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,6 +27,12 @@ export default function Paket() {
   const [paket, setPaket] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // "Nonaktifkan" bukan hapus — paketnya tetap ada, cuma disembunyikan
+  // dari daftar aktif (dan otomatis lenyap dari landing page publik).
+  // Sebelum ini tidak ada cara melihatnya lagi setelah dinonaktifkan —
+  // terasa seperti "hilang". Toggle ini membuatnya tetap terlihat &
+  // bisa diaktifkan kembali kalau salah klik.
+  const [filterAktif, setFilterAktif] = useState('AKTIF');
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -51,7 +57,6 @@ export default function Paket() {
     const { data, error: err } = await supabase
       .from('paket')
       .select('id, nama, jenis, tanggal_berangkat, harga_default, status, is_active, flyer_url')
-      .eq('is_active', true)
       .order('tanggal_berangkat', { ascending: true, nullsFirst: false });
     if (err) {
       setError(err.message);
@@ -63,6 +68,11 @@ export default function Paket() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const paketTerlihat = useMemo(
+    () => paket.filter((p) => (filterAktif === 'AKTIF' ? p.is_active : !p.is_active)),
+    [paket, filterAktif]
+  );
 
   function openAdd() {
     setEditingId(null);
@@ -159,8 +169,14 @@ export default function Paket() {
   }
 
   async function handleNonaktifkan(p) {
-    if (!window.confirm(`Nonaktifkan paket "${p.nama}"? Pendaftaran & pembayaran yang sudah ada tetap tersimpan.`)) return;
+    if (!window.confirm(`Nonaktifkan paket "${p.nama}"? Pendaftaran & pembayaran yang sudah ada tetap tersimpan — paket ini masih bisa diaktifkan lagi lewat tab "Nonaktif".`)) return;
     const { error: err } = await supabase.from('paket').update({ is_active: false }).eq('id', p.id);
+    if (err) { window.alert('Gagal: ' + err.message); return; }
+    load();
+  }
+
+  async function handleAktifkanKembali(p) {
+    const { error: err } = await supabase.from('paket').update({ is_active: true }).eq('id', p.id);
     if (err) { window.alert('Gagal: ' + err.message); return; }
     load();
   }
@@ -189,6 +205,23 @@ export default function Paket() {
         <div className="card rounded-xl2 p-4 mb-4 border-l-4 border-l-brick-500 text-sm text-brick-600">{error}</div>
       )}
 
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setFilterAktif('AKTIF')}
+          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterAktif === 'AKTIF' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
+        >
+          Aktif
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterAktif('NONAKTIF')}
+          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterAktif === 'NONAKTIF' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
+        >
+          Nonaktif
+        </button>
+      </div>
+
       <div className="card rounded-xl2 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
@@ -206,10 +239,14 @@ export default function Paket() {
               {loading && (
                 <tr><td colSpan={6} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
               )}
-              {!loading && paket.length === 0 && (
-                <tr><td colSpan={6} className="p-10 text-center text-ink-soft">Belum ada paket keberangkatan.</td></tr>
+              {!loading && paketTerlihat.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-10 text-center text-ink-soft">
+                    {filterAktif === 'AKTIF' ? 'Belum ada paket keberangkatan.' : 'Tidak ada paket yang dinonaktifkan.'}
+                  </td>
+                </tr>
               )}
-              {paket.map((p) => (
+              {paketTerlihat.map((p) => (
                 <tr key={p.id}>
                   <td className="p-4 font-medium">
                     <button
@@ -233,7 +270,8 @@ export default function Paket() {
                       <Aksi onClick={() => navigate(`/paket/${p.id}/manifest`)}>Manifest</Aksi>
                       <Aksi onClick={() => navigate(`/paket/${p.id}/operasional`)}>Roomlist &amp; Itinerary</Aksi>
                       {canWrite && <Aksi onClick={() => openEdit(p)}>Ubah</Aksi>}
-                      {canWrite && <Aksi jenis="bahaya" onClick={() => handleNonaktifkan(p)}>Nonaktifkan</Aksi>}
+                      {canWrite && p.is_active && <Aksi jenis="bahaya" onClick={() => handleNonaktifkan(p)}>Nonaktifkan</Aksi>}
+                      {canWrite && !p.is_active && <Aksi jenis="utama" onClick={() => handleAktifkanKembali(p)}>Aktifkan Kembali</Aksi>}
                     </GrupAksi>
                   </td>
                 </tr>

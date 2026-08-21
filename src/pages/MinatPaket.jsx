@@ -105,9 +105,14 @@ export default function MinatPaket() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    // RLS (sql/0016) sudah membatasi ini ke status=DIBUKA & is_active=true
+    // untuk pengunjung publik — filter di sini ditambahkan juga secara
+    // eksplisit sebagai jaminan kedua, bukan cuma mengandalkan RLS.
     const { data } = await supabase
       .from('paket')
       .select('id, nama, jenis, tanggal_berangkat, harga_default, flyer_url')
+      .eq('status', 'DIBUKA')
+      .eq('is_active', true)
       .order('tanggal_berangkat', { ascending: true, nullsFirst: false });
     setPaketList(data || []);
     setLoading(false);
