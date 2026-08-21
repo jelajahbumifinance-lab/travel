@@ -3,8 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { tanggalID } from '../lib/format';
+import { unduhCSV } from '../lib/csv';
 import { Aksi, GrupAksi, Pil } from '../components/ui';
 import SearchSelect from '../components/SearchSelect';
+
+// Nomor HP Indonesia ditulis staf/agen dengan berbagai gaya (08xx, +62,
+// 62, dengan spasi/strip) — dirapikan ke format 62xxx yang dipakai
+// wa.me supaya link-nya selalu valid apa pun cara nomornya diketik.
+function waLink(noHp) {
+  const digits = String(noHp || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const normalized = digits.startsWith('0') ? `62${digits.slice(1)}` : digits.startsWith('62') ? digits : `62${digits}`;
+  return `https://wa.me/${normalized}`;
+}
 
 const STATUS_LEAD = {
   BARU: { label: 'Baru', nada: 'info' },
@@ -46,6 +57,8 @@ export default function CrmAgen() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [agenFilter, setAgenFilter] = useState('');
+  const [dariTanggal, setDariTanggal] = useState('');
+  const [sampaiTanggal, setSampaiTanggal] = useState('');
 
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(FORM_KOSONG);
@@ -80,13 +93,22 @@ export default function CrmAgen() {
     return rows.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
       if (agenFilter && r.agen_id !== agenFilter) return false;
+      // created_at tersimpan sebagai timestamptz (UTC) — dibandingkan
+      // sebagai tanggal lokal (YYYY-MM-DD) supaya "20 Agu" tetap cocok
+      // walau jamnya lewat tengah malam UTC.
+      if (dariTanggal || sampaiTanggal) {
+        const tgl = new Date(r.created_at);
+        const tglLokal = tgl.getFullYear() + '-' + String(tgl.getMonth() + 1).padStart(2, '0') + '-' + String(tgl.getDate()).padStart(2, '0');
+        if (dariTanggal && tglLokal < dariTanggal) return false;
+        if (sampaiTanggal && tglLokal > sampaiTanggal) return false;
+      }
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         if (!r.nama?.toLowerCase().includes(q) && !r.no_hp?.includes(q)) return false;
       }
       return true;
     });
-  }, [rows, statusFilter, agenFilter, search]);
+  }, [rows, statusFilter, agenFilter, dariTanggal, sampaiTanggal, search]);
 
   const ringkasan = useMemo(() => {
     const hasil = {};
@@ -94,6 +116,19 @@ export default function CrmAgen() {
     for (const r of rows) hasil[r.status] = (hasil[r.status] || 0) + 1;
     return hasil;
   }, [rows]);
+
+  const rasioKonversi = rows.length > 0 ? Math.round((ringkasan.JADI_JAMAAH / rows.length) * 100) : 0;
+
+  function eksporCSV() {
+    unduhCSV(
+      'crm-agen.csv',
+      ['Nama', 'No. HP', 'Email', 'Agen', 'Minat Paket', 'Status', 'Catatan', 'Tanggal Masuk'],
+      filteredRows.map((r) => [
+        r.nama, r.no_hp, r.email || '', r.agen?.full_name || '', r.paket?.nama || '',
+        STATUS_LEAD[r.status]?.label || r.status, r.catatan || '', tanggalID(r.created_at),
+      ])
+    );
+  }
 
   function openAdd() {
     setForm(FORM_KOSONG);
@@ -195,18 +230,27 @@ export default function CrmAgen() {
           <h1 className="font-display text-2xl font-semibold">CRM Agen</h1>
           <p className="text-ink-soft text-sm mt-1">Calon jamaah yang dirujuk oleh agen/mitra.</p>
         </div>
-        {canWrite && (
+        <div className="flex gap-2">
           <button
             type="button"
-            onClick={openAdd}
-            className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm"
+            onClick={eksporCSV}
+            className="bg-accent-soft hover:bg-accent-soft-hover text-accent-text font-semibold py-2 px-4 rounded-md2 text-sm"
           >
-            + Catat Calon Jamaah
+            ⭳ Ekspor CSV
           </button>
-        )}
+          {canWrite && (
+            <button
+              type="button"
+              onClick={openAdd}
+              className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm"
+            >
+              + Catat Calon Jamaah
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-2">
         {Object.entries(STATUS_LEAD).map(([key, s]) => (
           <button
             key={key}
@@ -219,6 +263,9 @@ export default function CrmAgen() {
           </button>
         ))}
       </div>
+      <p className="text-xs text-ink-soft mb-4">
+        Rasio konversi: <b className="text-ink">{rasioKonversi}%</b> jadi jamaah dari {rows.length} calon yang tercatat.
+      </p>
 
       <div className="card rounded-xl2 p-4 mb-4 space-y-3">
         <input
@@ -250,6 +297,16 @@ export default function CrmAgen() {
             />
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-[11px] font-semibold text-ink-soft block mb-1">Tanggal Masuk Dari</label>
+            <input type="date" value={dariTanggal} onChange={(e) => setDariTanggal(e.target.value)} className="field w-full rounded-md2 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-ink-soft block mb-1">Sampai</label>
+            <input type="date" value={sampaiTanggal} onChange={(e) => setSampaiTanggal(e.target.value)} className="field w-full rounded-md2 px-3 py-2 text-sm" />
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -264,7 +321,7 @@ export default function CrmAgen() {
                 <th className="p-4">Nama</th>
                 <th className="p-4 whitespace-nowrap">Agen</th>
                 <th className="p-4 whitespace-nowrap">Minat Paket</th>
-                <th className="p-4 whitespace-nowrap">Tanggal</th>
+                <th className="p-4 whitespace-nowrap">Tanggal Masuk</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
                 <th className="p-4 whitespace-nowrap text-center">Aksi</th>
               </tr>
@@ -276,25 +333,47 @@ export default function CrmAgen() {
               {!loading && filteredRows.length === 0 && (
                 <tr><td colSpan={6} className="p-10 text-center text-ink-soft">Tidak ada calon jamaah yang cocok.</td></tr>
               )}
-              {filteredRows.map((r) => (
-                <tr key={r.id}>
-                  <td className="p-4">
-                    <p className="font-medium">{r.nama}</p>
-                    <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">{r.agen?.full_name || '-'}</td>
-                  <td className="p-4 whitespace-nowrap">{r.paket?.nama || '-'}</td>
-                  <td className="p-4 whitespace-nowrap text-ink-soft">{tanggalID(r.created_at)}</td>
-                  <td className="p-4 text-center">
-                    <Pil nada={STATUS_LEAD[r.status]?.nada || 'mute'}>{STATUS_LEAD[r.status]?.label || r.status}</Pil>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <GrupAksi>
-                      <Aksi onClick={() => openDetail(r)}>Detail</Aksi>
-                    </GrupAksi>
-                  </td>
-                </tr>
-              ))}
+              {filteredRows.map((r) => {
+                const wa = waLink(r.no_hp);
+                return (
+                  <tr key={r.id}>
+                    <td className="p-4">
+                      <p className="font-medium">{r.nama}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
+                        {wa && (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Chat WhatsApp"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-teal-600 hover:text-teal-700"
+                          >
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                              <path d="M12 2C6.5 2 2 6.4 2 11.9c0 1.8.5 3.5 1.3 5L2 22l5.3-1.4c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.4 10-9.9S17.5 2 12 2Zm5.8 14.1c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-2.9-1.3-4.8-4.2-5-4.4-.1-.2-1.2-1.6-1.2-3s.8-2.2 1-2.5c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5.2.5.8 1.9.8 2 .1.2.1.3 0 .5-.1.2-.1.3-.3.5-.1.2-.3.4-.4.5-.1.1-.3.3-.1.6.2.3.9 1.4 1.9 2.3 1.3 1.2 2.4 1.5 2.7 1.7.3.2.5.1.6-.1.2-.2.8-.9 1-1.2.2-.3.4-.2.7-.1.3.1 1.7.8 2 .9.3.2.5.2.6.3.1.2.1.8-.1 1.5Z" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">{r.agen?.full_name || '-'}</td>
+                    <td className="p-4">
+                      {r.paket?.nama || '-'}
+                      {r.catatan && <p className="text-[11px] text-ink-soft mt-0.5 max-w-[220px] truncate" title={r.catatan}>{r.catatan}</p>}
+                    </td>
+                    <td className="p-4 whitespace-nowrap text-ink-soft">{tanggalID(r.created_at)}</td>
+                    <td className="p-4 text-center">
+                      <Pil nada={STATUS_LEAD[r.status]?.nada || 'mute'}>{STATUS_LEAD[r.status]?.label || r.status}</Pil>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <GrupAksi>
+                        <Aksi onClick={() => openDetail(r)}>Detail</Aksi>
+                      </GrupAksi>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
