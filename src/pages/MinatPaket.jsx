@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { rupiah, tanggalID } from '../lib/format';
 import { BrandIcon, BrandWordmark } from '../components/BrandMark';
+import heroJamaah from '../assets/hero-jamaah.jpg';
 
 const JENIS_LABEL = {
   UMRAH: 'Umrah',
@@ -22,37 +23,6 @@ function KaabaIcon({ className = 'w-10 h-10' }) {
       <polygon points="50,46 85,28 85,78 50,96" fill="#0d0d0d" />
       <polygon points="15,44 50,62 50,69 15,51" fill="#D4AF37" />
       <polygon points="50,62 85,44 85,51 50,69" fill="#B8952E" />
-    </svg>
-  );
-}
-
-// Ilustrasi vector traveler (bukan foto) — dipakai di hero supaya halaman
-// terasa lebih hidup tanpa memakai foto model sungguhan.
-function TravelerIllustration({ className = 'w-full h-auto' }) {
-  return (
-    <svg viewBox="0 0 340 420" className={className} aria-hidden="true">
-      <ellipse cx="170" cy="405" rx="120" ry="12" fill="rgba(20,30,32,0.08)" />
-
-      {/* Koper */}
-      <rect x="246" y="264" width="40" height="10" rx="5" fill="#9A3412" />
-      <rect x="248" y="270" width="6" height="32" rx="3" fill="#9A3412" />
-      <rect x="278" y="270" width="6" height="32" rx="3" fill="#9A3412" />
-      <rect x="228" y="300" width="75" height="90" rx="10" fill="#F0791A" />
-      <rect x="228" y="335" width="75" height="8" fill="#C2410C" />
-      <circle cx="240" cy="395" r="7" fill="#2A2A2A" />
-      <circle cx="290" cy="395" r="7" fill="#2A2A2A" />
-
-      {/* Baju / gamis */}
-      <polygon points="130,160 172,160 200,270 215,405 90,405 105,270" fill="#0A6670" />
-      <line x1="151" y1="172" x2="151" y2="400" stroke="#0D8088" strokeWidth="3" opacity="0.5" />
-
-      {/* Tangan */}
-      <path d="M168,168 Q230,190 262,268" stroke="#E7B894" strokeWidth="20" strokeLinecap="round" fill="none" />
-      <path d="M134,168 Q104,200 112,250" stroke="#E7B894" strokeWidth="20" strokeLinecap="round" fill="none" />
-
-      {/* Hijab + wajah */}
-      <path d="M90,150 C90,78 114,54 151,54 C188,54 212,78 212,150 L212,208 C212,208 190,178 151,184 C112,178 90,208 90,208 Z" fill="#0D8088" />
-      <circle cx="151" cy="122" r="38" fill="#E7B894" />
     </svg>
   );
 }
@@ -189,8 +159,12 @@ export default function MinatPaket() {
               </a>
             </div>
           </div>
-          <div className="max-w-xs mx-auto md:max-w-sm">
-            <TravelerIllustration />
+          <div className="max-w-sm mx-auto md:max-w-md">
+            <img
+              src={heroJamaah}
+              alt="Jamaah bersiap berangkat umrah dengan koper dan paspor"
+              className="w-full h-auto"
+            />
           </div>
         </div>
       </section>
