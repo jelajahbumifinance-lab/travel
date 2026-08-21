@@ -13,7 +13,12 @@ const STATUS_LEAD = {
   JADI_JAMAAH: { label: 'Jadi Jamaah', nada: 'ok' },
 };
 
-const LEAD_FORM_KOSONG = { nama: '', no_hp: '', email: '', paket_id: '', catatan: '' };
+const LEAD_FORM_KOSONG = { nama: '', no_hp: '', email: '', paket_id: '', jumlah_pax: '', follow_up_at: '', catatan: '' };
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 
 /** Calon jamaah (leads) yang dicatat sendiri oleh agen — lihat sql/0017_crm_agen.sql. */
 export default function PortalAgenCalonJamaah() {
@@ -33,6 +38,8 @@ export default function PortalAgenCalonJamaah() {
   // tidak bisa mencatat pembayaran sendiri, cuma mengabari staf.
   const [leadDetailTarget, setLeadDetailTarget] = useState(null);
   const [leadDetailStatus, setLeadDetailStatus] = useState('BARU');
+  const [leadDetailPax, setLeadDetailPax] = useState('');
+  const [leadDetailFollowUp, setLeadDetailFollowUp] = useState('');
   const [leadDetailCatatan, setLeadDetailCatatan] = useState('');
   const [leadDetailError, setLeadDetailError] = useState('');
   const [savingLeadDetail, setSavingLeadDetail] = useState(false);
@@ -75,6 +82,8 @@ export default function PortalAgenCalonJamaah() {
       no_hp: leadForm.no_hp.trim(),
       email: leadForm.email.trim() || null,
       minat_paket_id: leadForm.paket_id || null,
+      jumlah_pax: leadForm.jumlah_pax ? Number(leadForm.jumlah_pax) : null,
+      follow_up_at: leadForm.follow_up_at || null,
       catatan: leadForm.catatan.trim() || null,
       agen_id: user.id,
       sumber: 'AGEN',
@@ -92,6 +101,8 @@ export default function PortalAgenCalonJamaah() {
   function openLeadDetail(row) {
     setLeadDetailTarget(row);
     setLeadDetailStatus(row.status);
+    setLeadDetailPax(row.jumlah_pax || '');
+    setLeadDetailFollowUp(row.follow_up_at || '');
     setLeadDetailCatatan(row.catatan || '');
     setLeadDetailError('');
   }
@@ -103,7 +114,12 @@ export default function PortalAgenCalonJamaah() {
     setSavingLeadDetail(true);
     const { error: err } = await supabase
       .from('leads')
-      .update({ status: leadDetailStatus, catatan: leadDetailCatatan.trim() || null })
+      .update({
+        status: leadDetailStatus,
+        jumlah_pax: leadDetailPax ? Number(leadDetailPax) : null,
+        follow_up_at: leadDetailFollowUp || null,
+        catatan: leadDetailCatatan.trim() || null,
+      })
       .eq('id', leadDetailTarget.id);
     setSavingLeadDetail(false);
     if (err) {
@@ -137,7 +153,9 @@ export default function PortalAgenCalonJamaah() {
               <tr className="text-xs uppercase tracking-wider font-semibold text-ink-soft border-b border-rule">
                 <th className="p-4">Nama</th>
                 <th className="p-4 whitespace-nowrap">Minat Paket</th>
-                <th className="p-4 whitespace-nowrap">Tanggal</th>
+                <th className="p-4 whitespace-nowrap text-center">Pax</th>
+                <th className="p-4 whitespace-nowrap">Tanggal Masuk</th>
+                <th className="p-4 whitespace-nowrap">Follow-up</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
                 <th className="p-4 whitespace-nowrap text-center">Aksi</th>
               </tr>
@@ -147,28 +165,35 @@ export default function PortalAgenCalonJamaah() {
                 <tr><td colSpan={5} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
               )}
               {!loading && leadRows.length === 0 && (
-                <tr><td colSpan={5} className="p-10 text-center text-ink-soft">Belum ada calon jamaah yang Anda catat.</td></tr>
+                <tr><td colSpan={7} className="p-10 text-center text-ink-soft">Belum ada calon jamaah yang Anda catat.</td></tr>
               )}
-              {leadRows.map((r) => (
-                <tr key={r.id}>
-                  <td className="p-4">
-                    <p className="font-medium">{r.nama}</p>
-                    <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap text-ink-soft">{r.paket?.nama || '-'}</td>
-                  <td className="p-4 whitespace-nowrap text-ink-soft">{tanggalID(r.created_at)}</td>
-                  <td className="p-4 text-center">
-                    <StatusPil peta={STATUS_LEAD} nilai={r.status} bawaan="BARU" />
-                  </td>
-                  <td className="p-4 text-center">
-                    {r.status === 'JADI_JAMAAH' ? (
-                      <span className="text-[11px] text-ink-soft">—</span>
-                    ) : (
-                      <Aksi onClick={() => openLeadDetail(r)}>Update</Aksi>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {leadRows.map((r) => {
+                const followUpLewat = r.follow_up_at && r.follow_up_at < todayISO() && !['JADI_JAMAAH', 'TIDAK_TERTARIK'].includes(r.status);
+                return (
+                  <tr key={r.id}>
+                    <td className="p-4">
+                      <p className="font-medium">{r.nama}</p>
+                      <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap text-ink-soft">{r.paket?.nama || '-'}</td>
+                    <td className="tabular p-4 text-center text-ink-soft">{r.jumlah_pax || '-'}</td>
+                    <td className="p-4 whitespace-nowrap text-ink-soft">{tanggalID(r.created_at)}</td>
+                    <td className={`p-4 whitespace-nowrap ${followUpLewat ? 'text-brick-600 font-semibold' : 'text-ink-soft'}`}>
+                      {r.follow_up_at ? tanggalID(r.follow_up_at) : '-'}{followUpLewat && ' · Lewat'}
+                    </td>
+                    <td className="p-4 text-center">
+                      <StatusPil peta={STATUS_LEAD} nilai={r.status} bawaan="BARU" />
+                    </td>
+                    <td className="p-4 text-center">
+                      {r.status === 'JADI_JAMAAH' ? (
+                        <span className="text-[11px] text-ink-soft">—</span>
+                      ) : (
+                        <Aksi onClick={() => openLeadDetail(r)}>Update</Aksi>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -205,6 +230,16 @@ export default function PortalAgenCalonJamaah() {
                   emptyLabel="Belum tahu paket"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jumlah Pax (opsional)</label>
+                  <input type="number" min="1" placeholder="mis. 4" value={leadForm.jumlah_pax} onChange={(e) => setLeadForm((f) => ({ ...f, jumlah_pax: e.target.value }))} className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Follow-up Berikutnya</label>
+                  <input type="date" value={leadForm.follow_up_at} onChange={(e) => setLeadForm((f) => ({ ...f, follow_up_at: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan (opsional)</label>
                 <textarea rows={2} value={leadForm.catatan} onChange={(e) => setLeadForm((f) => ({ ...f, catatan: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm resize-none" />
@@ -238,6 +273,16 @@ export default function PortalAgenCalonJamaah() {
                   <option value="TERTARIK">Tertarik / Siap DP</option>
                   <option value="TIDAK_TERTARIK">Tidak Berminat</option>
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jumlah Pax</label>
+                  <input type="number" min="1" value={leadDetailPax} onChange={(e) => setLeadDetailPax(e.target.value)} className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Follow-up Berikutnya</label>
+                  <input type="date" value={leadDetailFollowUp} onChange={(e) => setLeadDetailFollowUp(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan untuk Staf</label>

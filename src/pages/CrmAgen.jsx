@@ -17,6 +17,11 @@ function waLink(noHp) {
   return `https://wa.me/${normalized}`;
 }
 
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 const STATUS_LEAD = {
   BARU: { label: 'Baru', nada: 'info' },
   DIHUBUNGI: { label: 'Dihubungi', nada: 'warn' },
@@ -30,7 +35,9 @@ const STATUS_OPTIONS = [
   ...Object.entries(STATUS_LEAD).map(([value, s]) => ({ value, label: s.label })),
 ];
 
-const FORM_KOSONG = { agen_id: '', nama: '', no_hp: '', email: '', paket_id: '', catatan: '' };
+const FORM_KOSONG = { agen_id: '', nama: '', no_hp: '', email: '', paket_id: '', jumlah_pax: '', follow_up_at: '', catatan: '' };
+
+const HALAMAN_UKURAN = 20;
 
 async function fetchAgenOptions(query) {
   let q = supabase.from('profiles').select('id, full_name').eq('role', 'agen').eq('is_active', true);
@@ -59,6 +66,11 @@ export default function CrmAgen() {
   const [agenFilter, setAgenFilter] = useState('');
   const [dariTanggal, setDariTanggal] = useState('');
   const [sampaiTanggal, setSampaiTanggal] = useState('');
+  const [halaman, setHalaman] = useState(1);
+
+  const [terpilih, setTerpilih] = useState(() => new Set());
+  const [statusMassal, setStatusMassal] = useState('DIHUBUNGI');
+  const [menerapkanMassal, setMenerapkanMassal] = useState(false);
 
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(FORM_KOSONG);
@@ -67,6 +79,8 @@ export default function CrmAgen() {
 
   const [detailTarget, setDetailTarget] = useState(null);
   const [detailCatatan, setDetailCatatan] = useState('');
+  const [detailPax, setDetailPax] = useState('');
+  const [detailFollowUp, setDetailFollowUp] = useState('');
   const [detailError, setDetailError] = useState('');
   const [savingDetail, setSavingDetail] = useState(false);
 
@@ -110,6 +124,16 @@ export default function CrmAgen() {
     });
   }, [rows, statusFilter, agenFilter, dariTanggal, sampaiTanggal, search]);
 
+  // Filter berganti -> balik ke halaman 1, supaya tidak "nyangkut" di
+  // halaman 3 yang jadi kosong gara-gara hasil pencarian baru lebih sedikit.
+  useEffect(() => { setHalaman(1); }, [statusFilter, agenFilter, dariTanggal, sampaiTanggal, search]);
+
+  const totalHalaman = Math.max(1, Math.ceil(filteredRows.length / HALAMAN_UKURAN));
+  const pageRows = useMemo(
+    () => filteredRows.slice((halaman - 1) * HALAMAN_UKURAN, halaman * HALAMAN_UKURAN),
+    [filteredRows, halaman]
+  );
+
   const ringkasan = useMemo(() => {
     const hasil = {};
     for (const key of Object.keys(STATUS_LEAD)) hasil[key] = 0;
@@ -122,12 +146,44 @@ export default function CrmAgen() {
   function eksporCSV() {
     unduhCSV(
       'crm-agen.csv',
-      ['Nama', 'No. HP', 'Email', 'Agen', 'Minat Paket', 'Status', 'Catatan', 'Tanggal Masuk'],
+      ['Nama', 'No. HP', 'Email', 'Agen', 'Minat Paket', 'Jumlah Pax', 'Status', 'Follow-up Berikutnya', 'Catatan', 'Tanggal Masuk'],
       filteredRows.map((r) => [
-        r.nama, r.no_hp, r.email || '', r.agen?.full_name || '', r.paket?.nama || '',
-        STATUS_LEAD[r.status]?.label || r.status, r.catatan || '', tanggalID(r.created_at),
+        r.nama, r.no_hp, r.email || '', r.agen?.full_name || '', r.paket?.nama || '', r.jumlah_pax || '',
+        STATUS_LEAD[r.status]?.label || r.status, r.follow_up_at ? tanggalID(r.follow_up_at) : '', r.catatan || '', tanggalID(r.created_at),
       ])
     );
+  }
+
+  function toggleTerpilih(id) {
+    setTerpilih((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleTerpilihSemuaHalaman() {
+    setTerpilih((prev) => {
+      const idHalaman = pageRows.map((r) => r.id);
+      const semuaTerpilih = idHalaman.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (semuaTerpilih) idHalaman.forEach((id) => next.delete(id));
+      else idHalaman.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function terapkanStatusMassal() {
+    if (terpilih.size === 0) return;
+    setMenerapkanMassal(true);
+    const { error: err } = await supabase.from('leads').update({ status: statusMassal }).in('id', Array.from(terpilih));
+    setMenerapkanMassal(false);
+    if (err) {
+      window.alert('Gagal mengubah status: ' + err.message);
+      return;
+    }
+    setTerpilih(new Set());
+    load();
   }
 
   function openAdd() {
@@ -155,6 +211,8 @@ export default function CrmAgen() {
       minat_paket_id: form.paket_id || null,
       agen_id: form.agen_id,
       sumber: 'AGEN',
+      jumlah_pax: form.jumlah_pax ? Number(form.jumlah_pax) : null,
+      follow_up_at: form.follow_up_at || null,
       catatan: form.catatan.trim() || null,
       status: 'BARU',
     });
@@ -170,17 +228,24 @@ export default function CrmAgen() {
   function openDetail(row) {
     setDetailTarget(row);
     setDetailCatatan(row.catatan || '');
+    setDetailPax(row.jumlah_pax || '');
+    setDetailFollowUp(row.follow_up_at || '');
     setDetailError('');
+  }
+
+  function detailPayload() {
+    return {
+      catatan: detailCatatan.trim() || null,
+      jumlah_pax: detailPax ? Number(detailPax) : null,
+      follow_up_at: detailFollowUp || null,
+    };
   }
 
   async function ubahStatus(status) {
     if (!detailTarget) return;
     setDetailError('');
     setSavingDetail(true);
-    const { error: err } = await supabase
-      .from('leads')
-      .update({ status, catatan: detailCatatan.trim() || null })
-      .eq('id', detailTarget.id);
+    const { error: err } = await supabase.from('leads').update({ status, ...detailPayload() }).eq('id', detailTarget.id);
     setSavingDetail(false);
     if (err) {
       setDetailError(err.message);
@@ -190,14 +255,11 @@ export default function CrmAgen() {
     load();
   }
 
-  async function simpanCatatan() {
+  async function simpanPerubahan() {
     if (!detailTarget) return;
     setDetailError('');
     setSavingDetail(true);
-    const { error: err } = await supabase
-      .from('leads')
-      .update({ catatan: detailCatatan.trim() || null })
-      .eq('id', detailTarget.id);
+    const { error: err } = await supabase.from('leads').update(detailPayload()).eq('id', detailTarget.id);
     setSavingDetail(false);
     if (err) {
       setDetailError(err.message);
@@ -222,6 +284,9 @@ export default function CrmAgen() {
       },
     });
   }
+
+  const hariIni = todayISO();
+  const semuaHalamanTerpilih = pageRows.length > 0 && pageRows.every((r) => terpilih.has(r.id));
 
   return (
     <div className="w-full">
@@ -314,30 +379,63 @@ export default function CrmAgen() {
         <div className="card rounded-xl2 p-4 mb-4 border-l-4 border-l-brick-500 text-sm text-brick-600">{error}</div>
       )}
 
+      {canWrite && terpilih.size > 0 && (
+        <div className="card rounded-xl2 p-3 mb-4 flex flex-wrap items-center gap-2 border-l-4 border-l-accent">
+          <span className="text-sm font-semibold">{terpilih.size} dipilih</span>
+          <select value={statusMassal} onChange={(e) => setStatusMassal(e.target.value)} className="field rounded-md2 px-3 py-1.5 text-sm">
+            {Object.entries(STATUS_LEAD).filter(([k]) => k !== 'JADI_JAMAAH').map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={terapkanStatusMassal}
+            disabled={menerapkanMassal}
+            className="bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-1.5 px-3 rounded-md2 text-sm"
+          >
+            {menerapkanMassal ? 'Menerapkan...' : 'Terapkan Status'}
+          </button>
+          <button type="button" onClick={() => setTerpilih(new Set())} className="text-xs font-semibold text-ink-soft hover:underline ml-auto">
+            Batal pilih
+          </button>
+        </div>
+      )}
+
       <div className="card rounded-xl2 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="text-xs uppercase tracking-wider font-semibold text-ink-soft border-b border-rule">
+                {canWrite && (
+                  <th className="p-4 w-10">
+                    <input type="checkbox" checked={semuaHalamanTerpilih} onChange={toggleTerpilihSemuaHalaman} className="w-4 h-4" aria-label="Pilih semua di halaman ini" />
+                  </th>
+                )}
                 <th className="p-4">Nama</th>
                 <th className="p-4 whitespace-nowrap">Agen</th>
                 <th className="p-4 whitespace-nowrap">Minat Paket</th>
+                <th className="p-4 whitespace-nowrap text-center">Pax</th>
                 <th className="p-4 whitespace-nowrap">Tanggal Masuk</th>
+                <th className="p-4 whitespace-nowrap">Follow-up</th>
                 <th className="p-4 whitespace-nowrap text-center">Status</th>
                 <th className="p-4 whitespace-nowrap text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
               {loading && (
-                <tr><td colSpan={6} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
+                <tr><td colSpan={9} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
               )}
-              {!loading && filteredRows.length === 0 && (
-                <tr><td colSpan={6} className="p-10 text-center text-ink-soft">Tidak ada calon jamaah yang cocok.</td></tr>
+              {!loading && pageRows.length === 0 && (
+                <tr><td colSpan={9} className="p-10 text-center text-ink-soft">Tidak ada calon jamaah yang cocok.</td></tr>
               )}
-              {filteredRows.map((r) => {
+              {pageRows.map((r) => {
                 const wa = waLink(r.no_hp);
+                const followUpLewat = r.follow_up_at && r.follow_up_at < hariIni && !['JADI_JAMAAH', 'TIDAK_TERTARIK'].includes(r.status);
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={terpilih.has(r.id) ? 'bg-accent-soft/40' : ''}>
+                    {canWrite && (
+                      <td className="p-4">
+                        <input type="checkbox" checked={terpilih.has(r.id)} onChange={() => toggleTerpilih(r.id)} className="w-4 h-4" aria-label={`Pilih ${r.nama}`} />
+                      </td>
+                    )}
                     <td className="p-4">
                       <p className="font-medium">{r.nama}</p>
                       <div className="flex items-center gap-1.5">
@@ -363,7 +461,11 @@ export default function CrmAgen() {
                       {r.paket?.nama || '-'}
                       {r.catatan && <p className="text-[11px] text-ink-soft mt-0.5 max-w-[220px] truncate" title={r.catatan}>{r.catatan}</p>}
                     </td>
+                    <td className="tabular p-4 text-center">{r.jumlah_pax || '-'}</td>
                     <td className="p-4 whitespace-nowrap text-ink-soft">{tanggalID(r.created_at)}</td>
+                    <td className={`p-4 whitespace-nowrap ${followUpLewat ? 'text-brick-600 font-semibold' : 'text-ink-soft'}`}>
+                      {r.follow_up_at ? tanggalID(r.follow_up_at) : '-'}{followUpLewat && ' · Lewat'}
+                    </td>
                     <td className="p-4 text-center">
                       <Pil nada={STATUS_LEAD[r.status]?.nada || 'mute'}>{STATUS_LEAD[r.status]?.label || r.status}</Pil>
                     </td>
@@ -378,6 +480,29 @@ export default function CrmAgen() {
             </tbody>
           </table>
         </div>
+        {totalHalaman > 1 && (
+          <div className="flex items-center justify-between gap-3 p-4 border-t border-rule">
+            <p className="text-xs text-ink-soft">Halaman {halaman} dari {totalHalaman} · {filteredRows.length} calon jamaah</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={halaman <= 1}
+                onClick={() => setHalaman((h) => Math.max(1, h - 1))}
+                className="text-xs font-semibold py-1.5 px-3 rounded-md2 bg-accent-soft text-accent-text disabled:opacity-40"
+              >
+                ← Sebelumnya
+              </button>
+              <button
+                type="button"
+                disabled={halaman >= totalHalaman}
+                onClick={() => setHalaman((h) => Math.min(totalHalaman, h + 1))}
+                className="text-xs font-semibold py-1.5 px-3 rounded-md2 bg-accent-soft text-accent-text disabled:opacity-40"
+              >
+                Berikutnya →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal: Catat Calon Jamaah */}
@@ -423,6 +548,16 @@ export default function CrmAgen() {
                   emptyLabel="Belum tahu paket"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jumlah Pax (opsional)</label>
+                  <input type="number" min="1" placeholder="mis. 4" value={form.jumlah_pax} onChange={(e) => setForm((f) => ({ ...f, jumlah_pax: e.target.value }))} className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Follow-up Berikutnya</label>
+                  <input type="date" value={form.follow_up_at} onChange={(e) => setForm((f) => ({ ...f, follow_up_at: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan (opsional)</label>
                 <textarea rows={2} value={form.catatan} onChange={(e) => setForm((f) => ({ ...f, catatan: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm resize-none" />
@@ -457,6 +592,17 @@ export default function CrmAgen() {
 
             {canWrite && (
               <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jumlah Pax</label>
+                    <input type="number" min="1" value={detailPax} onChange={(e) => setDetailPax(e.target.value)} className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-ink-soft block mb-1.5">Follow-up Berikutnya</label>
+                    <input type="date" value={detailFollowUp} onChange={(e) => setDetailFollowUp(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                  </div>
+                </div>
+
                 <div className="mb-4">
                   <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan</label>
                   <textarea rows={3} value={detailCatatan} onChange={(e) => setDetailCatatan(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm resize-none" />
@@ -468,7 +614,7 @@ export default function CrmAgen() {
                   <button type="button" disabled={savingDetail} onClick={() => ubahStatus('DIHUBUNGI')} className="text-xs font-semibold py-2 rounded-md2 bg-accent-soft text-accent-text disabled:opacity-60">Tandai Dihubungi</button>
                   <button type="button" disabled={savingDetail} onClick={() => ubahStatus('TERTARIK')} className="text-xs font-semibold py-2 rounded-md2 bg-accent-soft text-accent-text disabled:opacity-60">Tandai Tertarik</button>
                   <button type="button" disabled={savingDetail} onClick={() => ubahStatus('TIDAK_TERTARIK')} className="text-xs font-semibold py-2 rounded-md2 bg-brick-100 text-brick-600 disabled:opacity-60">Tidak Tertarik</button>
-                  <button type="button" disabled={savingDetail} onClick={simpanCatatan} className="text-xs font-semibold py-2 rounded-md2 bg-paper-raised border border-rule disabled:opacity-60">Simpan Catatan</button>
+                  <button type="button" disabled={savingDetail} onClick={simpanPerubahan} className="text-xs font-semibold py-2 rounded-md2 bg-paper-raised border border-rule disabled:opacity-60">Simpan Perubahan</button>
                 </div>
 
                 {detailTarget.status !== 'JADI_JAMAAH' && (
