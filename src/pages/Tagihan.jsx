@@ -83,6 +83,14 @@ export default function Tagihan() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
 
+  // Modal: ubah data jamaah (nama/NIK/No. HP/jenis kelamin) — sebelum
+  // ini tidak ada cara membetulkan data jamaah sama sekali setelah
+  // didaftarkan, termasuk mengisi jenis_kelamin untuk jamaah lama.
+  const [editJamaahTarget, setEditJamaahTarget] = useState(null); // baris v_pendaftaran_status
+  const [editJamaahForm, setEditJamaahForm] = useState({ nama: '', nik: '', no_hp: '', jenis_kelamin: '' });
+  const [editJamaahError, setEditJamaahError] = useState('');
+  const [savingEditJamaah, setSavingEditJamaah] = useState(false);
+
   const [cetakData, setCetakData] = useState(null);
   const cetakTimer = useRef(null);
 
@@ -310,6 +318,43 @@ export default function Tagihan() {
     setHistoryLoading(false);
   }
 
+  function openEditJamaah(row) {
+    setEditJamaahTarget(row);
+    setEditJamaahForm({
+      nama: row.jamaah_nama || '',
+      nik: row.jamaah_nik || '',
+      no_hp: row.jamaah_no_hp || '',
+      jenis_kelamin: row.jamaah_jenis_kelamin || '',
+    });
+    setEditJamaahError('');
+  }
+
+  async function handleSubmitEditJamaah(e) {
+    e.preventDefault();
+    setEditJamaahError('');
+    if (!editJamaahForm.nama.trim()) {
+      setEditJamaahError('Nama wajib diisi.');
+      return;
+    }
+    setSavingEditJamaah(true);
+    const { error: err } = await supabase
+      .from('jamaah')
+      .update({
+        nama: editJamaahForm.nama.trim(),
+        nik: editJamaahForm.nik.trim() || null,
+        no_hp: editJamaahForm.no_hp.trim() || null,
+        jenis_kelamin: editJamaahForm.jenis_kelamin || null,
+      })
+      .eq('id', editJamaahTarget.jamaah_id);
+    setSavingEditJamaah(false);
+    if (err) {
+      setEditJamaahError(err.message);
+      return;
+    }
+    setEditJamaahTarget(null);
+    load();
+  }
+
   async function handleVoidPayment(c) {
     const reason = window.prompt('Alasan pembatalan pembayaran ini?');
     if (!reason || !reason.trim()) return;
@@ -432,7 +477,11 @@ export default function Tagihan() {
                 return (
                   <tr key={r.id}>
                     <td className="p-4">
-                      <p className="font-medium">{r.jamaah_nama}</p>
+                      <p className="font-medium">
+                        {r.jamaah_nama}
+                        {r.jamaah_jenis_kelamin === 'L' && <span className="italic text-[11px] text-blue-600 ml-1">Laki-laki</span>}
+                        {r.jamaah_jenis_kelamin === 'P' && <span className="italic text-[11px] text-pink-600 ml-1">Perempuan</span>}
+                      </p>
                       <p className="text-[11px] text-ink-soft">{r.jamaah_no_hp || '-'}</p>
                     </td>
                     <td className="p-4 whitespace-nowrap">{r.paket_nama}</td>
@@ -446,6 +495,7 @@ export default function Tagihan() {
                     <td className="p-4 whitespace-nowrap">
                       <GrupAksi>
                         <Aksi onClick={() => openHistory(r)}>Riwayat</Aksi>
+                        {canWrite && <Aksi onClick={() => openEditJamaah(r)}>Ubah</Aksi>}
                         {canWrite && !lunas && (
                           <Aksi jenis="utama" onClick={() => openPay(r)}>Bayar</Aksi>
                         )}
@@ -735,6 +785,73 @@ export default function Tagihan() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Ubah Data Jamaah */}
+      {editJamaahTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden"
+          style={{ background: 'rgba(13,21,23,0.55)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setEditJamaahTarget(null); }}
+        >
+          <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display text-lg font-semibold">Ubah Data Jamaah</h2>
+              <button type="button" onClick={() => setEditJamaahTarget(null)} aria-label="Tutup" className="text-xl">×</button>
+            </div>
+            <form onSubmit={handleSubmitEditJamaah} className="space-y-4" noValidate>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nama Jamaah</label>
+                <input
+                  type="text"
+                  value={editJamaahForm.nama}
+                  onChange={(e) => setEditJamaahForm((f) => ({ ...f, nama: e.target.value }))}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">NIK (opsional)</label>
+                <input
+                  type="text"
+                  value={editJamaahForm.nik}
+                  onChange={(e) => setEditJamaahForm((f) => ({ ...f, nik: e.target.value.replace(/\D/g, '') }))}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">No. HP / WhatsApp (opsional)</label>
+                <input
+                  type="text"
+                  value={editJamaahForm.no_hp}
+                  onChange={(e) => setEditJamaahForm((f) => ({ ...f, no_hp: e.target.value }))}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis Kelamin (opsional)</label>
+                <select
+                  value={editJamaahForm.jenis_kelamin}
+                  onChange={(e) => setEditJamaahForm((f) => ({ ...f, jenis_kelamin: e.target.value }))}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+                >
+                  <option value="">— Belum diisi —</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+              </div>
+              {editJamaahError && (
+                <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{editJamaahError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={savingEditJamaah}
+                className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2"
+              >
+                {savingEditJamaah ? 'Menyimpan...' : 'Simpan perubahan'}
+              </button>
+            </form>
           </div>
         </div>
       )}
