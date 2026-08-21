@@ -4,6 +4,12 @@ import { rupiah, tanggalID } from '../lib/format';
 import { unduhCSV } from '../lib/csv';
 import { StatusPil, STATUS_PENDAFTARAN, Aksi } from '../components/ui';
 
+function LabelGender({ jenisKelamin }) {
+  if (jenisKelamin === 'L') return <span className="italic text-[11px] text-blue-600 ml-1">Laki-laki</span>;
+  if (jenisKelamin === 'P') return <span className="italic text-[11px] text-pink-600 ml-1">Perempuan</span>;
+  return null;
+}
+
 export default function PortalAgenJamaah() {
   const [jamaahRows, setJamaahRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +94,7 @@ export default function PortalAgenJamaah() {
               )}
               {jamaahRows.map((r) => (
                 <tr key={r.id}>
-                  <td className="p-4 font-medium">{r.jamaah_nama}</td>
+                  <td className="p-4 font-medium">{r.jamaah_nama}<LabelGender jenisKelamin={r.jamaah_jenis_kelamin} /></td>
                   <td className="p-4 whitespace-nowrap text-ink-soft">{r.paket_nama}</td>
                   <td className="tabular p-4 text-right whitespace-nowrap">{rupiah(r.total_tagihan)}</td>
                   <td className="tabular p-4 text-right whitespace-nowrap font-semibold">{rupiah(Math.max(0, r.sisa))}</td>

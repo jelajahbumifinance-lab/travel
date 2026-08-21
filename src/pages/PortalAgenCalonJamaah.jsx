@@ -13,11 +13,17 @@ const STATUS_LEAD = {
   JADI_JAMAAH: { label: 'Jadi Jamaah', nada: 'ok' },
 };
 
-const LEAD_FORM_KOSONG = { nama: '', no_hp: '', email: '', paket_id: '', jumlah_pax: '', follow_up_at: '', catatan: '' };
+const LEAD_FORM_KOSONG = { nama: '', no_hp: '', email: '', jenis_kelamin: '', paket_id: '', jumlah_pax: '', follow_up_at: '', catatan: '' };
 
 function todayISO() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function LabelGender({ jenisKelamin }) {
+  if (jenisKelamin === 'L') return <span className="italic text-[11px] text-blue-600 ml-1">Laki-laki</span>;
+  if (jenisKelamin === 'P') return <span className="italic text-[11px] text-pink-600 ml-1">Perempuan</span>;
+  return null;
 }
 
 /** Calon jamaah (leads) yang dicatat sendiri oleh agen — lihat sql/0017_crm_agen.sql. */
@@ -40,6 +46,7 @@ export default function PortalAgenCalonJamaah() {
   const [leadDetailStatus, setLeadDetailStatus] = useState('BARU');
   const [leadDetailPax, setLeadDetailPax] = useState('');
   const [leadDetailFollowUp, setLeadDetailFollowUp] = useState('');
+  const [leadDetailJenisKelamin, setLeadDetailJenisKelamin] = useState('');
   const [leadDetailCatatan, setLeadDetailCatatan] = useState('');
   const [leadDetailError, setLeadDetailError] = useState('');
   const [savingLeadDetail, setSavingLeadDetail] = useState(false);
@@ -81,6 +88,7 @@ export default function PortalAgenCalonJamaah() {
       nama: leadForm.nama.trim(),
       no_hp: leadForm.no_hp.trim(),
       email: leadForm.email.trim() || null,
+      jenis_kelamin: leadForm.jenis_kelamin || null,
       minat_paket_id: leadForm.paket_id || null,
       jumlah_pax: leadForm.jumlah_pax ? Number(leadForm.jumlah_pax) : null,
       follow_up_at: leadForm.follow_up_at || null,
@@ -103,6 +111,7 @@ export default function PortalAgenCalonJamaah() {
     setLeadDetailStatus(row.status);
     setLeadDetailPax(row.jumlah_pax || '');
     setLeadDetailFollowUp(row.follow_up_at || '');
+    setLeadDetailJenisKelamin(row.jenis_kelamin || '');
     setLeadDetailCatatan(row.catatan || '');
     setLeadDetailError('');
   }
@@ -118,6 +127,7 @@ export default function PortalAgenCalonJamaah() {
         status: leadDetailStatus,
         jumlah_pax: leadDetailPax ? Number(leadDetailPax) : null,
         follow_up_at: leadDetailFollowUp || null,
+        jenis_kelamin: leadDetailJenisKelamin || null,
         catatan: leadDetailCatatan.trim() || null,
       })
       .eq('id', leadDetailTarget.id);
@@ -172,7 +182,7 @@ export default function PortalAgenCalonJamaah() {
                 return (
                   <tr key={r.id}>
                     <td className="p-4">
-                      <p className="font-medium">{r.nama}</p>
+                      <p className="font-medium">{r.nama}<LabelGender jenisKelamin={r.jenis_kelamin} /></p>
                       <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
                     </td>
                     <td className="p-4 whitespace-nowrap text-ink-soft">{r.paket?.nama || '-'}</td>
@@ -221,6 +231,14 @@ export default function PortalAgenCalonJamaah() {
                 <input type="email" value={leadForm.email} onChange={(e) => setLeadForm((f) => ({ ...f, email: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
               </div>
               <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis Kelamin (opsional)</label>
+                <select value={leadForm.jenis_kelamin} onChange={(e) => setLeadForm((f) => ({ ...f, jenis_kelamin: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm">
+                  <option value="">— Belum diisi —</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+              </div>
+              <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Minat Paket (opsional)</label>
                 <SearchSelect
                   value={leadForm.paket_id}
@@ -258,7 +276,7 @@ export default function PortalAgenCalonJamaah() {
           onMouseDown={(e) => { if (e.target === e.currentTarget) setLeadDetailTarget(null); }}>
           <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-display text-lg font-semibold">{leadDetailTarget.nama}</h2>
+              <h2 className="font-display text-lg font-semibold">{leadDetailTarget.nama}<LabelGender jenisKelamin={leadDetailTarget.jenis_kelamin} /></h2>
               <button type="button" onClick={() => setLeadDetailTarget(null)} aria-label="Tutup" className="text-xl">×</button>
             </div>
             <p className="text-xs text-ink-soft mb-4">
@@ -283,6 +301,14 @@ export default function PortalAgenCalonJamaah() {
                   <label className="text-xs font-semibold text-ink-soft block mb-1.5">Follow-up Berikutnya</label>
                   <input type="date" value={leadDetailFollowUp} onChange={(e) => setLeadDetailFollowUp(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis Kelamin</label>
+                <select value={leadDetailJenisKelamin} onChange={(e) => setLeadDetailJenisKelamin(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm">
+                  <option value="">— Belum diisi —</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
               </div>
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan untuk Staf</label>

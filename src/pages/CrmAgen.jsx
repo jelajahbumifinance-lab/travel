@@ -35,7 +35,13 @@ const STATUS_OPTIONS = [
   ...Object.entries(STATUS_LEAD).map(([value, s]) => ({ value, label: s.label })),
 ];
 
-const FORM_KOSONG = { agen_id: '', nama: '', no_hp: '', email: '', paket_id: '', jumlah_pax: '', follow_up_at: '', catatan: '' };
+const FORM_KOSONG = { agen_id: '', nama: '', no_hp: '', email: '', jenis_kelamin: '', paket_id: '', jumlah_pax: '', follow_up_at: '', catatan: '' };
+
+function LabelGender({ jenisKelamin }) {
+  if (jenisKelamin === 'L') return <span className="italic text-[11px] text-blue-600 ml-1">Laki-laki</span>;
+  if (jenisKelamin === 'P') return <span className="italic text-[11px] text-pink-600 ml-1">Perempuan</span>;
+  return null;
+}
 
 const HALAMAN_UKURAN = 20;
 
@@ -81,6 +87,7 @@ export default function CrmAgen() {
   const [detailCatatan, setDetailCatatan] = useState('');
   const [detailPax, setDetailPax] = useState('');
   const [detailFollowUp, setDetailFollowUp] = useState('');
+  const [detailJenisKelamin, setDetailJenisKelamin] = useState('');
   const [detailError, setDetailError] = useState('');
   const [savingDetail, setSavingDetail] = useState(false);
 
@@ -211,6 +218,7 @@ export default function CrmAgen() {
       minat_paket_id: form.paket_id || null,
       agen_id: form.agen_id,
       sumber: 'AGEN',
+      jenis_kelamin: form.jenis_kelamin || null,
       jumlah_pax: form.jumlah_pax ? Number(form.jumlah_pax) : null,
       follow_up_at: form.follow_up_at || null,
       catatan: form.catatan.trim() || null,
@@ -230,6 +238,7 @@ export default function CrmAgen() {
     setDetailCatatan(row.catatan || '');
     setDetailPax(row.jumlah_pax || '');
     setDetailFollowUp(row.follow_up_at || '');
+    setDetailJenisKelamin(row.jenis_kelamin || '');
     setDetailError('');
   }
 
@@ -238,6 +247,7 @@ export default function CrmAgen() {
       catatan: detailCatatan.trim() || null,
       jumlah_pax: detailPax ? Number(detailPax) : null,
       follow_up_at: detailFollowUp || null,
+      jenis_kelamin: detailJenisKelamin || null,
     };
   }
 
@@ -276,6 +286,7 @@ export default function CrmAgen() {
         prefillDaftar: {
           nama: detailTarget.nama,
           no_hp: detailTarget.no_hp,
+          jenis_kelamin: detailTarget.jenis_kelamin || '',
           paket_id: detailTarget.minat_paket_id || '',
           agen_id: detailTarget.agen_id || '',
           agen_nama: detailTarget.agen?.full_name || '',
@@ -437,7 +448,7 @@ export default function CrmAgen() {
                       </td>
                     )}
                     <td className="p-4">
-                      <p className="font-medium">{r.nama}</p>
+                      <p className="font-medium">{r.nama}<LabelGender jenisKelamin={r.jenis_kelamin} /></p>
                       <div className="flex items-center gap-1.5">
                         <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
                         {wa && (
@@ -539,6 +550,14 @@ export default function CrmAgen() {
                 <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
               </div>
               <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis Kelamin (opsional)</label>
+                <select value={form.jenis_kelamin} onChange={(e) => setForm((f) => ({ ...f, jenis_kelamin: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm">
+                  <option value="">— Belum diisi —</option>
+                  <option value="L">Laki-laki</option>
+                  <option value="P">Perempuan</option>
+                </select>
+              </div>
+              <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-1.5">Minat Paket (opsional)</label>
                 <SearchSelect
                   value={form.paket_id}
@@ -577,7 +596,7 @@ export default function CrmAgen() {
           onMouseDown={(e) => { if (e.target === e.currentTarget) setDetailTarget(null); }}>
           <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-semibold">{detailTarget.nama}</h2>
+              <h2 className="font-display text-lg font-semibold">{detailTarget.nama}<LabelGender jenisKelamin={detailTarget.jenis_kelamin} /></h2>
               <button type="button" onClick={() => setDetailTarget(null)} aria-label="Tutup" className="text-xl">×</button>
             </div>
 
@@ -601,6 +620,14 @@ export default function CrmAgen() {
                     <label className="text-xs font-semibold text-ink-soft block mb-1.5">Follow-up Berikutnya</label>
                     <input type="date" value={detailFollowUp} onChange={(e) => setDetailFollowUp(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
                   </div>
+                </div>
+                <div className="mb-4">
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis Kelamin</label>
+                  <select value={detailJenisKelamin} onChange={(e) => setDetailJenisKelamin(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm">
+                    <option value="">— Belum diisi —</option>
+                    <option value="L">Laki-laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
                 </div>
 
                 <div className="mb-4">
