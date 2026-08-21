@@ -238,6 +238,29 @@ export default function OperasionalPaket() {
   }
   if (!paket) return <div className="card rounded-xl2 p-5 text-sm text-ink-soft">Paket tidak ditemukan.</div>;
 
+  // Dikelompokkan per kota supaya gampang dikenali sekilas mana rombongan
+  // kamar Madinah dan mana Makkah — rooms sudah diurutkan per kota di
+  // load(), jadi baris kota yang sama sudah pasti bersebelahan di sini.
+  // Class ditulis lengkap (bukan disusun lewat string replace saat run)
+  // supaya Tailwind JIT — yang cuma men-scan teks literal di source,
+  // tidak menjalankan JS — tetap mendeteksi dan menghasilkan CSS-nya.
+  const PALET_KOTA = [
+    { text: 'text-teal-700', bg: 'bg-teal-700', border: 'border-teal-700' },
+    { text: 'text-orange-600', bg: 'bg-orange-600', border: 'border-orange-600' },
+    { text: 'text-moss-600', bg: 'bg-moss-600', border: 'border-moss-600' },
+    { text: 'text-blue-600', bg: 'bg-blue-600', border: 'border-blue-600' },
+  ];
+  const roomGroups = [];
+  rooms.forEach((r) => {
+    const kotaKey = r.kota?.trim() || null;
+    const grupTerakhir = roomGroups[roomGroups.length - 1];
+    if (!grupTerakhir || grupTerakhir.kota !== kotaKey) {
+      roomGroups.push({ kota: kotaKey, warna: PALET_KOTA[roomGroups.length % PALET_KOTA.length], rooms: [r] });
+    } else {
+      grupTerakhir.rooms.push(r);
+    }
+  });
+
   return (
     <div className="w-full">
       <Link to="/paket" className="text-xs font-semibold text-accent-text hover:underline">← Kembali ke Paket Keberangkatan</Link>
@@ -259,44 +282,52 @@ export default function OperasionalPaket() {
             </div>
           )}
           {rooms.length === 0 && <div className="card rounded-xl2 p-10 text-center text-ink-soft text-sm">Belum ada kamar diatur untuk paket ini.</div>}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {rooms.map((r) => {
-              const anggota = r.roomlist_anggota || [];
-              const kapasitas = KAPASITAS[r.kategori_kamar];
-              const penuh = anggota.length >= kapasitas;
-              return (
-                <div key={r.id} className="card rounded-xl2 p-5">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div>
-                      <p className="font-semibold">{KATEGORI_LABEL[r.kategori_kamar]}{r.nomor_kamar ? ` — No. ${r.nomor_kamar}` : ''}</p>
-                      <p className="text-[11px] text-ink-soft">
-                        {r.kota ? <span className="font-semibold text-accent-text">{r.kota}</span> : <span className="italic">Kota belum diisi</span>}
-                        {r.lokasi ? ` · ${r.lokasi}` : ''}
-                      </p>
+          {roomGroups.map((group) => (
+            <div key={group.kota || '__belum__'} className="mb-6 last:mb-0">
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${group.warna.bg}`} />
+                <h2 className={`font-display font-semibold text-lg ${group.warna.text}`}>
+                  {group.kota || 'Kota Belum Diisi'}
+                </h2>
+                <span className="text-xs text-ink-soft">({group.rooms.length} kamar)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {group.rooms.map((r) => {
+                  const anggota = r.roomlist_anggota || [];
+                  const kapasitas = KAPASITAS[r.kategori_kamar];
+                  const penuh = anggota.length >= kapasitas;
+                  return (
+                    <div key={r.id} className={`card rounded-xl2 p-5 border-l-4 ${group.warna.border}`}>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div>
+                          <p className="font-semibold">{KATEGORI_LABEL[r.kategori_kamar]}{r.nomor_kamar ? ` — No. ${r.nomor_kamar}` : ''}</p>
+                          <p className="text-[11px] text-ink-soft">{r.lokasi || 'Nama hotel belum diisi'}</p>
+                        </div>
+                        <Pil nada={penuh ? 'ok' : 'warn'}>{anggota.length} / {kapasitas}</Pil>
+                      </div>
+                      <div className="text-sm space-y-1 mb-3 min-h-[24px]">
+                        {anggota.length === 0 && <p className="text-ink-soft text-xs">Belum ada anggota.</p>}
+                        {anggota.map((a) => (
+                          <p key={a.id}>· {a.jamaah?.nama}<LabelGender jenisKelamin={a.jamaah?.jenis_kelamin} /></p>
+                        ))}
+                        {new Set(anggota.map((a) => a.jamaah?.jenis_kelamin).filter(Boolean)).size > 1 && (
+                          <p className="text-[11px] text-brick-600 font-semibold mt-1">⚠ Campuran laki-laki &amp; perempuan — pastikan sudah mahram.</p>
+                        )}
+                      </div>
+                      {r.catatan && <p className="text-[11px] text-ink-soft mb-3 italic">{r.catatan}</p>}
+                      {canManage && (
+                        <GrupAksi>
+                          <Aksi onClick={() => openAnggota(r)}>Atur Anggota</Aksi>
+                          <Aksi onClick={() => openEditRoom(r)}>Ubah</Aksi>
+                          <Aksi jenis="bahaya" onClick={() => handleHapusRoom(r)}>Hapus</Aksi>
+                        </GrupAksi>
+                      )}
                     </div>
-                    <Pil nada={penuh ? 'ok' : 'warn'}>{anggota.length} / {kapasitas}</Pil>
-                  </div>
-                  <div className="text-sm space-y-1 mb-3 min-h-[24px]">
-                    {anggota.length === 0 && <p className="text-ink-soft text-xs">Belum ada anggota.</p>}
-                    {anggota.map((a) => (
-                      <p key={a.id}>· {a.jamaah?.nama}<LabelGender jenisKelamin={a.jamaah?.jenis_kelamin} /></p>
-                    ))}
-                    {new Set(anggota.map((a) => a.jamaah?.jenis_kelamin).filter(Boolean)).size > 1 && (
-                      <p className="text-[11px] text-brick-600 font-semibold mt-1">⚠ Campuran laki-laki &amp; perempuan — pastikan sudah mahram.</p>
-                    )}
-                  </div>
-                  {r.catatan && <p className="text-[11px] text-ink-soft mb-3 italic">{r.catatan}</p>}
-                  {canManage && (
-                    <GrupAksi>
-                      <Aksi onClick={() => openAnggota(r)}>Atur Anggota</Aksi>
-                      <Aksi onClick={() => openEditRoom(r)}>Ubah</Aksi>
-                      <Aksi jenis="bahaya" onClick={() => handleHapusRoom(r)}>Hapus</Aksi>
-                    </GrupAksi>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
