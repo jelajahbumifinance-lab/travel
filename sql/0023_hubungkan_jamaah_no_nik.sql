@@ -16,7 +16,12 @@
 -- tidak menggagalkan pencocokan yang sebenarnya sama.
 -- ============================================================
 
-create or replace function link_jamaah_account(p_nama text, p_no_hp text)
+-- Postgres tidak mengizinkan CREATE OR REPLACE mengganti NAMA parameter
+-- (p_nik -> p_nama) walau tipenya sama persis (text, text) — harus
+-- di-drop dulu baru dibuat ulang dengan nama parameter yang baru.
+drop function if exists link_jamaah_account(text, text);
+
+create function link_jamaah_account(p_nama text, p_no_hp text)
 returns table(jamaah_id uuid, jamaah_nama text)
 language plpgsql
 security definer
