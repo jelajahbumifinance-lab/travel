@@ -224,24 +224,22 @@ export default function PortalJamaah() {
               </div>
               <div className="p-5 space-y-4">
                 {penerbangan.map((p) => (
-                  <div key={p.id} className="flex items-start gap-3">
-                    <div className="w-16 shrink-0">
+                  <div key={p.id} className="border border-rule rounded-md2 p-4">
+                    <div className="mb-2">
                       <StatusPil peta={{ BERANGKAT: { label: 'Berangkat', nada: 'info' }, PULANG: { label: 'Pulang', nada: 'ok' } }} nilai={p.jenis} bawaan="BERANGKAT" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">
-                        {p.maskapai || 'Maskapai belum diisi'}{p.nomor_penerbangan ? ` — ${p.nomor_penerbangan}` : ''}
+                    <p className="text-sm font-medium">
+                      {p.maskapai || 'Maskapai belum diisi'}{p.nomor_penerbangan ? ` — ${p.nomor_penerbangan}` : ''}
+                    </p>
+                    {(p.bandara_asal || p.bandara_tujuan) && (
+                      <p className="text-xs text-ink-soft mt-0.5">{p.bandara_asal || '?'} → {p.bandara_tujuan || '?'}</p>
+                    )}
+                    {(p.tanggal || p.jam) && (
+                      <p className="text-xs text-ink-soft mt-0.5">
+                        {p.tanggal ? tanggalID(p.tanggal) : ''}{p.tanggal && p.jam ? ' · ' : ''}{p.jam ? p.jam.slice(0, 5) : ''}
                       </p>
-                      {(p.bandara_asal || p.bandara_tujuan) && (
-                        <p className="text-xs text-ink-soft mt-0.5">{p.bandara_asal || '?'} → {p.bandara_tujuan || '?'}</p>
-                      )}
-                      {(p.tanggal || p.jam) && (
-                        <p className="text-xs text-ink-soft mt-0.5">
-                          {p.tanggal ? tanggalID(p.tanggal) : ''}{p.tanggal && p.jam ? ' · ' : ''}{p.jam ? p.jam.slice(0, 5) : ''}
-                        </p>
-                      )}
-                      {p.catatan && <p className="text-xs text-ink-soft mt-0.5 italic">{p.catatan}</p>}
-                    </div>
+                    )}
+                    {p.catatan && <p className="text-xs text-ink-soft mt-0.5 italic">{p.catatan}</p>}
                   </div>
                 ))}
               </div>
