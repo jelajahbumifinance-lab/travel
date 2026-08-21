@@ -65,6 +65,8 @@ const FAQ = [
 export default function MinatPaket() {
   const [paketList, setPaketList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [testimoniList, setTestimoniList] = useState([]);
+  const [galeriList, setGaleriList] = useState([]);
 
   const [showForm, setShowForm] = useState(false);
   const [paketTerpilih, setPaketTerpilih] = useState(null); // null = belum tahu paket
@@ -89,6 +91,25 @@ export default function MinatPaket() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Testimoni & galeri jarang berubah dan tidak bergantung pada apa pun
+  // di load() di atas — dimuat sekali secara terpisah supaya kegagalannya
+  // (mis. tabel belum ada di database yang lebih lama) tidak ikut
+  // menggagalkan daftar paket yang jauh lebih penting.
+  useEffect(() => {
+    supabase
+      .from('testimoni')
+      .select('id, nama, keterangan, isi, foto_url')
+      .eq('is_active', true)
+      .order('urutan', { ascending: true })
+      .then(({ data }) => setTestimoniList(data || []));
+    supabase
+      .from('galeri_foto')
+      .select('id, foto_url, keterangan')
+      .eq('is_active', true)
+      .order('urutan', { ascending: true })
+      .then(({ data }) => setGaleriList(data || []));
+  }, []);
 
   function bukaForm(paket) {
     setPaketTerpilih(paket || null);
@@ -230,6 +251,51 @@ export default function MinatPaket() {
           ))}
         </div>
       </section>
+
+      {/* TESTIMONI */}
+      {testimoniList.length > 0 && (
+        <section className="px-4 md:px-8 py-16 bg-paper-raised border-y border-rule">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-center mb-2">Kata Jamaah Kami</h2>
+            <p className="text-ink-soft text-center mb-10 max-w-lg mx-auto">Cerita dari jamaah yang sudah berangkat bersama JBI.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {testimoniList.map((t) => (
+                <div key={t.id} className="card rounded-xl2 p-5">
+                  <p className="text-sm text-ink-soft mb-4">&ldquo;{t.isi}&rdquo;</p>
+                  <div className="flex items-center gap-3">
+                    {t.foto_url ? (
+                      <img src={t.foto_url} alt={t.nama} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-accent-soft text-accent-text flex items-center justify-center font-display font-semibold">
+                        {t.nama.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-display font-semibold text-sm">{t.nama}</p>
+                      {t.keterangan && <p className="text-xs text-ink-soft">{t.keterangan}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* GALERI FOTO */}
+      {galeriList.length > 0 && (
+        <section className="px-4 md:px-8 py-16 max-w-6xl mx-auto">
+          <h2 className="font-display text-2xl md:text-3xl font-bold text-center mb-2">Dokumentasi Keberangkatan</h2>
+          <p className="text-ink-soft text-center mb-10 max-w-lg mx-auto">Momen jamaah kami di tanah suci.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {galeriList.map((g) => (
+              <div key={g.id} className="rounded-xl2 overflow-hidden aspect-square">
+                <img src={g.foto_url} alt={g.keterangan || 'Dokumentasi keberangkatan JBI'} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* PROSES PENDAFTARAN */}
       <section className="px-4 md:px-8 py-16 bg-paper-raised border-y border-rule">

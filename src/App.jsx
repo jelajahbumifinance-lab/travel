@@ -35,6 +35,7 @@ const PortalAgenBantuan = lazy(() => import('./pages/PortalAgenBantuan'));
 const PortalAgenProfil = lazy(() => import('./pages/PortalAgenProfil'));
 const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
+const KontenLanding = lazy(() => import('./pages/KontenLanding'));
 const Laporan = lazy(() => import('./pages/Laporan'));
 const JejakAudit = lazy(() => import('./pages/JejakAudit'));
 
@@ -81,6 +82,14 @@ export default function App() {
             <Route path="/crm-agen" element={<CrmAgen />} />
             <Route path="/helpdesk" element={<Helpdesk />} />
             <Route path="/leads" element={<Leads />} />
+            <Route
+              path="/konten-landing"
+              element={
+                <ProtectedRoute allowedRoles={['direktur', 'admin_keuangan']}>
+                  <KontenLanding />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/buku-kas" element={<BukuKas />} />
             <Route path="/rekening" element={<Rekening />} />
             <Route

@@ -3,7 +3,7 @@ import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandIcon } from './BrandMark';
 import NotificationBell from './NotificationBell';
-import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconAgen, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf, IconLeads, IconHelpdesk } from './Icons';
+import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconAgen, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf, IconLeads, IconHelpdesk, IconGaleri } from './Icons';
 
 // Menu dikelompokkan per fungsi (bukan satu daftar panjang rata) supaya
 // sidebar tetap mudah dipindai walau modulnya terus bertambah. Grup tanpa
@@ -38,6 +38,7 @@ const NAV_GROUPS = [
     label: 'Pemasaran',
     items: [
       { to: '/leads', label: 'Leads / Calon Jamaah', Icon: IconLeads },
+      { to: '/konten-landing', label: 'Testimoni & Galeri', Icon: IconGaleri, roles: ['direktur', 'admin_keuangan'] },
     ],
   },
   {

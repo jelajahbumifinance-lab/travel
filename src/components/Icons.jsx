@@ -150,3 +150,13 @@ export function IconProfil(props) {
     </svg>
   );
 }
+
+export function IconGaleri(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="4.5" width="18" height="15" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.7" />
+      <path d="M3 16.5l5.5-5 4 3.8 3-2.6L21 16.8" />
+    </svg>
+  );
+}
