@@ -267,15 +267,18 @@ export default function CrmAgen() {
         Rasio konversi: <b className="text-ink">{rasioKonversi}%</b> jadi jamaah dari {rows.length} calon yang tercatat.
       </p>
 
-      <div className="card rounded-xl2 p-4 mb-4 space-y-3">
-        <input
-          type="search"
-          placeholder="Cari nama / No. HP"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="field w-full rounded-md2 px-3 py-2 text-sm"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="card rounded-xl2 p-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="lg:col-span-2">
+            <label className="text-[11px] font-semibold text-ink-soft block mb-1">Cari</label>
+            <input
+              type="search"
+              placeholder="Nama / No. HP"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="field w-full rounded-md2 px-3 py-2 text-sm"
+            />
+          </div>
           <div>
             <label className="text-[11px] font-semibold text-ink-soft block mb-1">Status</label>
             <select
@@ -296,10 +299,8 @@ export default function CrmAgen() {
               emptyLabel="Semua agen"
             />
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[11px] font-semibold text-ink-soft block mb-1">Tanggal Masuk Dari</label>
+            <label className="text-[11px] font-semibold text-ink-soft block mb-1">Masuk Dari</label>
             <input type="date" value={dariTanggal} onChange={(e) => setDariTanggal(e.target.value)} className="field w-full rounded-md2 px-3 py-2 text-sm" />
           </div>
           <div>
