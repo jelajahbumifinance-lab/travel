@@ -141,3 +141,12 @@ export function IconHelpdesk(props) {
     </svg>
   );
 }
+
+export function IconProfil(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-4 3.4-6.8 7.5-6.8s7.5 2.8 7.5 6.8" />
+    </svg>
+  );
+}

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import PortalLayout from './components/PortalLayout';
+import AgenLayout from './components/AgenLayout';
 import Login from './pages/Login';
 import DaftarAgen from './pages/DaftarAgen';
 import DaftarJamaah from './pages/DaftarJamaah';
@@ -25,7 +26,12 @@ const Agen = lazy(() => import('./pages/Agen'));
 const Leads = lazy(() => import('./pages/Leads'));
 const CrmAgen = lazy(() => import('./pages/CrmAgen'));
 const Helpdesk = lazy(() => import('./pages/Helpdesk'));
-const PortalAgen = lazy(() => import('./pages/PortalAgen'));
+const PortalAgenRingkasan = lazy(() => import('./pages/PortalAgenRingkasan'));
+const PortalAgenJamaah = lazy(() => import('./pages/PortalAgenJamaah'));
+const PortalAgenCalonJamaah = lazy(() => import('./pages/PortalAgenCalonJamaah'));
+const PortalAgenKomisi = lazy(() => import('./pages/PortalAgenKomisi'));
+const PortalAgenBantuan = lazy(() => import('./pages/PortalAgenBantuan'));
+const PortalAgenProfil = lazy(() => import('./pages/PortalAgenProfil'));
 const PortalJamaah = lazy(() => import('./pages/PortalJamaah'));
 const UndangStaf = lazy(() => import('./pages/UndangStaf'));
 const Laporan = lazy(() => import('./pages/Laporan'));
@@ -103,12 +109,26 @@ export default function App() {
 
           <Route
             element={
-              <ProtectedRoute allowedRoles={['agen', 'jamaah']}>
+              <ProtectedRoute allowedRoles={['agen']}>
+                <AgenLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/portal-agen" element={<PortalAgenRingkasan />} />
+            <Route path="/portal-agen/jamaah" element={<PortalAgenJamaah />} />
+            <Route path="/portal-agen/calon-jamaah" element={<PortalAgenCalonJamaah />} />
+            <Route path="/portal-agen/komisi" element={<PortalAgenKomisi />} />
+            <Route path="/portal-agen/bantuan" element={<PortalAgenBantuan />} />
+            <Route path="/portal-agen/profil" element={<PortalAgenProfil />} />
+          </Route>
+
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={['jamaah']}>
                 <PortalLayout />
               </ProtectedRoute>
             }
           >
-            <Route path="/portal-agen" element={<PortalAgen />} />
             <Route path="/portal-jamaah" element={<PortalJamaah />} />
           </Route>
 
