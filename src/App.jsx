@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import DaftarAgen from './pages/DaftarAgen';
 import DaftarJamaah from './pages/DaftarJamaah';
 import MinatPaket from './pages/MinatPaket';
+import ResetPassword from './pages/ResetPassword';
 
 // Halaman staf dimuat lazy — agen/jamaah tidak perlu ikut mengunduh kode
 // buku kas yang tidak bisa mereka buka.
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/daftar-agen" element={<DaftarAgen />} />
           <Route path="/daftar-jamaah" element={<DaftarJamaah />} />
           <Route path="/minat" element={<MinatPaket />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             element={

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandIcon, BrandWordmark } from '../components/BrandMark';
+import PasswordField from '../components/PasswordField';
 
 /**
  * Pendaftaran mandiri agen/mitra — dua langkah, sama seperti pola
@@ -143,16 +144,14 @@ export default function DaftarAgen() {
                   className="field w-full rounded-md2 px-4 py-2.5 text-sm"
                 />
               </div>
-              <div>
-                <label htmlFor="pw" className="text-xs font-semibold text-ink-soft block mb-1.5">Password</label>
-                <input
-                  id="pw" type="password" autoComplete="new-password"
-                  value={akun.password}
-                  onChange={(e) => setAkun((f) => ({ ...f, password: e.target.value }))}
-                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
-                />
-                <p className="text-[11px] text-ink-soft mt-1">Minimal 6 karakter.</p>
-              </div>
+              <PasswordField
+                id="pw"
+                label="Password"
+                autoComplete="new-password"
+                value={akun.password}
+                onChange={(e) => setAkun((f) => ({ ...f, password: e.target.value }))}
+                hint="Minimal 6 karakter."
+              />
               {error && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{error}</p>}
               {info && <p className="text-xs font-semibold text-teal-700 bg-teal-100 rounded-md2 px-3 py-2">{info}</p>}
               <button
