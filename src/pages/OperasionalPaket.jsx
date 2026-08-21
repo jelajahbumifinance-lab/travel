@@ -32,6 +32,7 @@ export default function OperasionalPaket() {
   const [anggotaTarget, setAnggotaTarget] = useState(null); // room object
   const [anggotaTerpilih, setAnggotaTerpilih] = useState(new Set());
   const [savingAnggota, setSavingAnggota] = useState(false);
+  const [anggotaError, setAnggotaError] = useState('');
 
   const [showHariForm, setShowHariForm] = useState(false);
   const [editHariId, setEditHariId] = useState(null);
@@ -107,9 +108,27 @@ export default function OperasionalPaket() {
   function openAnggota(r) {
     setAnggotaTarget(r);
     setAnggotaTerpilih(new Set((r.roomlist_anggota || []).map((a) => a.jamaah_id)));
+    setAnggotaError('');
+  }
+
+  // Satu jamaah wajar punya kamar terpisah di lokasi BERBEDA (Makkah vs
+  // Madinah, dua leg perjalanan) tapi tidak boleh dobel kamar di lokasi
+  // yang SAMA — dihitung dari kamar lain (bukan kamar yang sedang
+  // dibuka) yang lokasinya cocok (trim+lower, sama seperti pengecekan
+  // di database, lihat sql/0024_cegah_dobel_kamar.sql). Ini cuma
+  // pencegahan di tampilan; batas sesungguhnya ada di trigger database.
+  const konflikLokasi = {};
+  if (anggotaTarget?.lokasi?.trim()) {
+    const lokasiTarget = anggotaTarget.lokasi.trim().toLowerCase();
+    rooms.forEach((r) => {
+      if (r.id === anggotaTarget.id) return;
+      if (!r.lokasi || r.lokasi.trim().toLowerCase() !== lokasiTarget) return;
+      (r.roomlist_anggota || []).forEach((a) => { konflikLokasi[a.jamaah_id] = r; });
+    });
   }
 
   function toggleAnggota(jamaahId) {
+    if (konflikLokasi[jamaahId]) return;
     setAnggotaTerpilih((prev) => {
       const next = new Set(prev);
       if (next.has(jamaahId)) next.delete(jamaahId); else next.add(jamaahId);
@@ -118,16 +137,27 @@ export default function OperasionalPaket() {
   }
 
   async function handleSimpanAnggota() {
+    setAnggotaError('');
     setSavingAnggota(true);
     const sebelum = new Set((anggotaTarget.roomlist_anggota || []).map((a) => a.jamaah_id));
     const tambah = [...anggotaTerpilih].filter((id) => !sebelum.has(id));
     const hapus = [...sebelum].filter((id) => !anggotaTerpilih.has(id));
 
     if (tambah.length > 0) {
-      await supabase.from('roomlist_anggota').insert(tambah.map((jamaah_id) => ({ roomlist_id: anggotaTarget.id, jamaah_id })));
+      const { error: err } = await supabase.from('roomlist_anggota').insert(tambah.map((jamaah_id) => ({ roomlist_id: anggotaTarget.id, jamaah_id })));
+      if (err) {
+        setSavingAnggota(false);
+        setAnggotaError(err.message);
+        return;
+      }
     }
     if (hapus.length > 0) {
-      await supabase.from('roomlist_anggota').delete().eq('roomlist_id', anggotaTarget.id).in('jamaah_id', hapus);
+      const { error: err } = await supabase.from('roomlist_anggota').delete().eq('roomlist_id', anggotaTarget.id).in('jamaah_id', hapus);
+      if (err) {
+        setSavingAnggota(false);
+        setAnggotaError(err.message);
+        return;
+      }
     }
     setSavingAnggota(false);
     setAnggotaTarget(null);
@@ -322,13 +352,24 @@ export default function OperasionalPaket() {
             </p>
             {jamaahList.length === 0 && <p className="text-sm text-ink-soft mb-4">Belum ada jamaah terdaftar di paket ini.</p>}
             <div className="space-y-1 mb-4 max-h-72 overflow-y-auto">
-              {jamaahList.map((j) => (
-                <label key={j.id} className="flex items-center gap-2.5 px-2 py-2 rounded-md2 hover:bg-accent-soft cursor-pointer text-sm">
-                  <input type="checkbox" checked={anggotaTerpilih.has(j.id)} onChange={() => toggleAnggota(j.id)} className="w-4 h-4" />
-                  {j.nama}
-                </label>
-              ))}
+              {jamaahList.map((j) => {
+                const konflik = konflikLokasi[j.id];
+                return (
+                  <label key={j.id} className={`flex items-center gap-2.5 px-2 py-2 rounded-md2 text-sm ${konflik ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent-soft cursor-pointer'}`}>
+                    <input type="checkbox" checked={anggotaTerpilih.has(j.id)} disabled={!!konflik} onChange={() => toggleAnggota(j.id)} className="w-4 h-4" />
+                    <span>
+                      {j.nama}
+                      {konflik && (
+                        <span className="block text-[11px] text-ink-soft">
+                          Sudah di {KATEGORI_LABEL[konflik.kategori_kamar]}{konflik.nomor_kamar ? ` No. ${konflik.nomor_kamar}` : ''} — {konflik.lokasi}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
+            {anggotaError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2 mb-3">{anggotaError}</p>}
             <button type="button" onClick={handleSimpanAnggota} disabled={savingAnggota} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
               {savingAnggota ? 'Menyimpan...' : 'Simpan anggota'}
             </button>
