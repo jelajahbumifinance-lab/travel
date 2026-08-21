@@ -107,7 +107,7 @@ export default function MinatPaket() {
     setLoading(true);
     const { data } = await supabase
       .from('paket')
-      .select('id, nama, jenis, tanggal_berangkat, harga_default')
+      .select('id, nama, jenis, tanggal_berangkat, harga_default, flyer_url')
       .order('tanggal_berangkat', { ascending: true, nullsFirst: false });
     setPaketList(data || []);
     setLoading(false);
@@ -219,11 +219,22 @@ export default function MinatPaket() {
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {paketList.map((p) => (
-            <div key={p.id} className="card rounded-xl2 p-5 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-orange-600">{JENIS_LABEL[p.jenis] || p.jenis}</p>
-                <KaabaIcon className="w-7 h-7" />
-              </div>
+            <div key={p.id} className="card rounded-xl2 overflow-hidden p-5 flex flex-col">
+              {p.flyer_url ? (
+                <img
+                  src={p.flyer_url}
+                  alt={`Flyer ${p.nama}`}
+                  className="-mx-5 -mt-5 mb-4 w-[calc(100%+2.5rem)] aspect-[4/3] object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-orange-600">{JENIS_LABEL[p.jenis] || p.jenis}</p>
+                  <KaabaIcon className="w-7 h-7" />
+                </div>
+              )}
+              {p.flyer_url && (
+                <p className="text-[11px] font-bold uppercase tracking-wider text-orange-600 mb-1">{JENIS_LABEL[p.jenis] || p.jenis}</p>
+              )}
               <h3 className="font-display font-semibold text-lg mb-2">{p.nama}</h3>
               <p className="text-sm text-ink-soft mb-1">
                 {p.tanggal_berangkat ? `Berangkat ${tanggalID(p.tanggal_berangkat)}` : 'Jadwal keberangkatan menyusul'}

@@ -34,12 +34,23 @@ export default function Paket() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ nama: '', jenis: 'UMRAH', tanggal_berangkat: '', harga_default: '', status: 'DIBUKA' });
 
+  // Flyer promosi (opsional) — gambar yang staf desain sendiri, tampil
+  // sebagai banner besar di kartu paket pada landing page publik /minat.
+  // flyerPreviewUrl menampilkan salah satu dari: url flyer lama (saat
+  // edit), blob preview file baru yang baru dipilih, atau '' kalau
+  // dihapus — flyerFile cuma diisi kalau ada file BARU yang perlu
+  // diunggah saat submit.
+  const [flyerFile, setFlyerFile] = useState(null);
+  const [flyerPreviewUrl, setFlyerPreviewUrl] = useState('');
+  const [uploadingFlyer, setUploadingFlyer] = useState(false);
+  const [flyerError, setFlyerError] = useState('');
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     const { data, error: err } = await supabase
       .from('paket')
-      .select('id, nama, jenis, tanggal_berangkat, harga_default, status, is_active')
+      .select('id, nama, jenis, tanggal_berangkat, harga_default, status, is_active, flyer_url')
       .eq('is_active', true)
       .order('tanggal_berangkat', { ascending: true, nullsFirst: false });
     if (err) {
@@ -56,6 +67,9 @@ export default function Paket() {
   function openAdd() {
     setEditingId(null);
     setForm({ nama: '', jenis: 'UMRAH', tanggal_berangkat: '', harga_default: '', status: 'DIBUKA' });
+    setFlyerFile(null);
+    setFlyerPreviewUrl('');
+    setFlyerError('');
     setFormError('');
     setShowForm(true);
   }
@@ -69,8 +83,32 @@ export default function Paket() {
       harga_default: formatRibuan(String(p.harga_default)),
       status: p.status,
     });
+    setFlyerFile(null);
+    setFlyerPreviewUrl(p.flyer_url || '');
+    setFlyerError('');
     setFormError('');
     setShowForm(true);
+  }
+
+  function handleFlyerChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFlyerError('');
+    if (!file.type.startsWith('image/')) {
+      setFlyerError('File harus berupa gambar.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFlyerError('Ukuran gambar maksimal 5MB.');
+      return;
+    }
+    setFlyerFile(file);
+    setFlyerPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handleHapusFlyer() {
+    setFlyerFile(null);
+    setFlyerPreviewUrl('');
   }
 
   async function handleSubmit(e) {
@@ -80,14 +118,34 @@ export default function Paket() {
       setFormError('Nama paket wajib diisi.');
       return;
     }
+    setSubmitting(true);
+
+    // flyerPreviewUrl sudah mewakili keadaan akhir yang diinginkan (url
+    // lama dipertahankan, atau '' kalau dihapus) — cuma perlu diunggah
+    // dulu kalau ada file BARU yang dipilih (flyerFile terisi).
+    let flyerUrl = flyerPreviewUrl || null;
+    if (flyerFile) {
+      setUploadingFlyer(true);
+      const ext = flyerFile.name.split('.').pop();
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('paket-flyer').upload(path, flyerFile, { upsert: false });
+      setUploadingFlyer(false);
+      if (upErr) {
+        setSubmitting(false);
+        setFormError('Gagal mengunggah flyer: ' + upErr.message);
+        return;
+      }
+      flyerUrl = supabase.storage.from('paket-flyer').getPublicUrl(path).data.publicUrl;
+    }
+
     const payload = {
       nama: form.nama.trim(),
       jenis: form.jenis,
       tanggal_berangkat: form.tanggal_berangkat || null,
       harga_default: Number(String(form.harga_default).replace(/\D/g, '')) || 0,
       status: form.status,
+      flyer_url: flyerUrl,
     };
-    setSubmitting(true);
     const { error: opError } = editingId
       ? await supabase.from('paket').update(payload).eq('id', editingId)
       : await supabase.from('paket').insert(payload);
@@ -248,6 +306,29 @@ export default function Paket() {
                   {Object.entries(STATUS_PAKET).map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Flyer Promosi (opsional)</label>
+                {flyerPreviewUrl && (
+                  <div className="mb-2 relative">
+                    <img src={flyerPreviewUrl} alt="Pratinjau flyer" className="w-full rounded-md2 border border-rule object-cover max-h-48" />
+                    <button
+                      type="button"
+                      onClick={handleHapusFlyer}
+                      className="absolute top-2 right-2 bg-brick-600 hover:bg-brick-700 text-white text-xs font-semibold px-2.5 py-1 rounded-md2"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFlyerChange}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md2 file:border-0 file:bg-accent-soft file:text-accent-text file:text-xs file:font-semibold"
+                />
+                <p className="text-[11px] text-ink-soft mt-1">Tampil sebagai gambar besar di kartu paket pada landing page publik. Maksimal 5MB.</p>
+                {flyerError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2 mt-1">{flyerError}</p>}
+              </div>
               {formError && (
                 <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{formError}</p>
               )}
@@ -256,7 +337,7 @@ export default function Paket() {
                 disabled={submitting}
                 className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2"
               >
-                {submitting ? 'Menyimpan...' : editingId ? 'Simpan perubahan' : 'Tambah paket'}
+                {uploadingFlyer ? 'Mengunggah flyer...' : submitting ? 'Menyimpan...' : editingId ? 'Simpan perubahan' : 'Tambah paket'}
               </button>
             </form>
           </div>
