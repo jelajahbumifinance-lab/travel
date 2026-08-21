@@ -19,6 +19,8 @@ function LabelGender({ jenisKelamin }) {
 
 const ROOM_KOSONG = { kategori_kamar: 'QUAD', kota: '', lokasi: '', nomor_kamar: '', catatan: '' };
 const HARI_KOSONG = { hari: '', judul: '', deskripsi: '' };
+const JENIS_PENERBANGAN_LABEL = { BERANGKAT: 'Berangkat', PULANG: 'Pulang' };
+const PENERBANGAN_KOSONG = { jenis: 'BERANGKAT', maskapai: '', nomor_penerbangan: '', bandara_asal: '', bandara_tujuan: '', tanggal: '', jam: '', catatan: '' };
 
 export default function OperasionalPaket() {
   const { paketId } = useParams();
@@ -50,17 +52,25 @@ export default function OperasionalPaket() {
   const [hariFormError, setHariFormError] = useState('');
   const [savingHari, setSavingHari] = useState(false);
 
+  const [penerbangan, setPenerbangan] = useState([]);
+  const [showPenerbanganForm, setShowPenerbanganForm] = useState(false);
+  const [editPenerbanganId, setEditPenerbanganId] = useState(null);
+  const [penerbanganForm, setPenerbanganForm] = useState(PENERBANGAN_KOSONG);
+  const [penerbanganFormError, setPenerbanganFormError] = useState('');
+  const [savingPenerbangan, setSavingPenerbangan] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    const [paketRes, pendaftaranRes, roomRes, itineraryRes] = await Promise.all([
+    const [paketRes, pendaftaranRes, roomRes, itineraryRes, penerbanganRes] = await Promise.all([
       supabase.from('paket').select('id, nama, tanggal_berangkat').eq('id', paketId).maybeSingle(),
       supabase.from('pendaftaran').select('jamaah(id, nama, jenis_kelamin)').eq('paket_id', paketId).neq('status', 'BATAL'),
       supabase.from('roomlist').select('id, kategori_kamar, kota, lokasi, nomor_kamar, catatan, roomlist_anggota(id, jamaah_id, jamaah(nama, jenis_kelamin))').eq('paket_id', paketId),
       supabase.from('itinerary_item').select('id, hari, judul, deskripsi').eq('paket_id', paketId).order('hari'),
+      supabase.from('penerbangan').select('*').eq('paket_id', paketId),
     ]);
-    if (paketRes.error || pendaftaranRes.error || roomRes.error || itineraryRes.error) {
-      setError(paketRes.error?.message || pendaftaranRes.error?.message || roomRes.error?.message || itineraryRes.error?.message);
+    if (paketRes.error || pendaftaranRes.error || roomRes.error || itineraryRes.error || penerbanganRes.error) {
+      setError(paketRes.error?.message || pendaftaranRes.error?.message || roomRes.error?.message || itineraryRes.error?.message || penerbanganRes.error?.message);
       setLoading(false);
       return;
     }
@@ -68,6 +78,7 @@ export default function OperasionalPaket() {
     setJamaahList((pendaftaranRes.data || []).map((p) => p.jamaah).filter(Boolean));
     setRooms((roomRes.data || []).sort((a, b) => (a.kota || '').localeCompare(b.kota || '') || (a.lokasi || '').localeCompare(b.lokasi || '')));
     setItinerary(itineraryRes.data || []);
+    setPenerbangan((penerbanganRes.data || []).sort((a, b) => a.jenis.localeCompare(b.jenis) || (a.tanggal || '').localeCompare(b.tanggal || '')));
     setLoading(false);
   }, [paketId]);
 
@@ -227,6 +238,61 @@ export default function OperasionalPaket() {
     load();
   }
 
+  // ---- Penerbangan ----
+  function openAddPenerbangan() {
+    setEditPenerbanganId(null);
+    setPenerbanganForm(PENERBANGAN_KOSONG);
+    setPenerbanganFormError('');
+    setShowPenerbanganForm(true);
+  }
+
+  function openEditPenerbangan(p) {
+    setEditPenerbanganId(p.id);
+    setPenerbanganForm({
+      jenis: p.jenis,
+      maskapai: p.maskapai || '',
+      nomor_penerbangan: p.nomor_penerbangan || '',
+      bandara_asal: p.bandara_asal || '',
+      bandara_tujuan: p.bandara_tujuan || '',
+      tanggal: p.tanggal || '',
+      jam: p.jam || '',
+      catatan: p.catatan || '',
+    });
+    setPenerbanganFormError('');
+    setShowPenerbanganForm(true);
+  }
+
+  async function handleSubmitPenerbangan(e) {
+    e.preventDefault();
+    setPenerbanganFormError('');
+    const payload = {
+      paket_id: paketId,
+      jenis: penerbanganForm.jenis,
+      maskapai: penerbanganForm.maskapai.trim() || null,
+      nomor_penerbangan: penerbanganForm.nomor_penerbangan.trim() || null,
+      bandara_asal: penerbanganForm.bandara_asal.trim() || null,
+      bandara_tujuan: penerbanganForm.bandara_tujuan.trim() || null,
+      tanggal: penerbanganForm.tanggal || null,
+      jam: penerbanganForm.jam || null,
+      catatan: penerbanganForm.catatan.trim() || null,
+    };
+    setSavingPenerbangan(true);
+    const { error: err } = editPenerbanganId
+      ? await supabase.from('penerbangan').update(payload).eq('id', editPenerbanganId)
+      : await supabase.from('penerbangan').insert(payload);
+    setSavingPenerbangan(false);
+    if (err) { setPenerbanganFormError(err.message); return; }
+    setShowPenerbanganForm(false);
+    load();
+  }
+
+  async function handleHapusPenerbangan(p) {
+    if (!window.confirm(`Hapus data penerbangan ${JENIS_PENERBANGAN_LABEL[p.jenis]}${p.nomor_penerbangan ? ` (${p.nomor_penerbangan})` : ''}?`)) return;
+    const { error: err } = await supabase.from('penerbangan').delete().eq('id', p.id);
+    if (err) { window.alert('Gagal: ' + err.message); return; }
+    load();
+  }
+
   if (loading) return <div className="text-sm text-ink-soft">Memuat...</div>;
   if (error) {
     return (
@@ -272,6 +338,7 @@ export default function OperasionalPaket() {
       <div className="flex flex-wrap gap-2 mb-4">
         <button type="button" onClick={() => setTab('ROOMLIST')} className={`text-xs font-semibold px-4 py-2 rounded-md2 ${tab === 'ROOMLIST' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}>Roomlist</button>
         <button type="button" onClick={() => setTab('ITINERARY')} className={`text-xs font-semibold px-4 py-2 rounded-md2 ${tab === 'ITINERARY' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}>Itinerary</button>
+        <button type="button" onClick={() => setTab('PENERBANGAN')} className={`text-xs font-semibold px-4 py-2 rounded-md2 ${tab === 'PENERBANGAN' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}>Penerbangan</button>
       </div>
 
       {tab === 'ROOMLIST' && (
@@ -355,6 +422,40 @@ export default function OperasionalPaket() {
                     <Aksi onClick={() => openEditHari(it)}>Ubah</Aksi>
                     <Aksi jenis="bahaya" onClick={() => handleHapusHari(it)}>Hapus</Aksi>
                   </GrupAksi>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'PENERBANGAN' && (
+        <div>
+          {canManage && (
+            <div className="flex justify-end mb-3">
+              <button type="button" onClick={openAddPenerbangan} className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm">+ Tambah Penerbangan</button>
+            </div>
+          )}
+          {penerbangan.length === 0 && <div className="card rounded-xl2 p-10 text-center text-ink-soft text-sm">Belum ada data penerbangan untuk paket ini.</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {penerbangan.map((p) => (
+              <div key={p.id} className="card rounded-xl2 p-5">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <Pil nada={p.jenis === 'BERANGKAT' ? 'info' : 'ok'}>{JENIS_PENERBANGAN_LABEL[p.jenis]}</Pil>
+                  {p.tanggal && <p className="text-xs text-ink-soft">{new Date(p.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}{p.jam ? ` · ${p.jam.slice(0, 5)}` : ''}</p>}
+                </div>
+                <p className="font-semibold">{p.maskapai || 'Maskapai belum diisi'}{p.nomor_penerbangan ? ` — ${p.nomor_penerbangan}` : ''}</p>
+                {(p.bandara_asal || p.bandara_tujuan) && (
+                  <p className="text-sm text-ink-soft mt-1">{p.bandara_asal || '?'} → {p.bandara_tujuan || '?'}</p>
+                )}
+                {p.catatan && <p className="text-[11px] text-ink-soft mt-2 italic">{p.catatan}</p>}
+                {canManage && (
+                  <div className="mt-3">
+                    <GrupAksi>
+                      <Aksi onClick={() => openEditPenerbangan(p)}>Ubah</Aksi>
+                      <Aksi jenis="bahaya" onClick={() => handleHapusPenerbangan(p)}>Hapus</Aksi>
+                    </GrupAksi>
+                  </div>
                 )}
               </div>
             ))}
@@ -484,6 +585,63 @@ export default function OperasionalPaket() {
               {hariFormError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{hariFormError}</p>}
               <button type="submit" disabled={savingHari} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
                 {savingHari ? 'Menyimpan...' : editHariId ? 'Simpan perubahan' : 'Tambah jadwal'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Tambah/Ubah Penerbangan */}
+      {showPenerbanganForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(13,21,23,0.55)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setShowPenerbanganForm(false); }}>
+          <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display text-lg font-semibold">{editPenerbanganId ? 'Ubah Penerbangan' : 'Tambah Penerbangan'}</h2>
+              <button type="button" onClick={() => setShowPenerbanganForm(false)} aria-label="Tutup" className="text-xl">×</button>
+            </div>
+            <form onSubmit={handleSubmitPenerbangan} className="space-y-4" noValidate>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jenis</label>
+                <select value={penerbanganForm.jenis} onChange={(e) => setPenerbanganForm((f) => ({ ...f, jenis: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm">
+                  {Object.entries(JENIS_PENERBANGAN_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Maskapai (opsional)</label>
+                <input type="text" placeholder="mis. Saudia, Garuda Indonesia" value={penerbanganForm.maskapai} onChange={(e) => setPenerbanganForm((f) => ({ ...f, maskapai: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nomor Penerbangan (opsional)</label>
+                <input type="text" placeholder="mis. SV819" value={penerbanganForm.nomor_penerbangan} onChange={(e) => setPenerbanganForm((f) => ({ ...f, nomor_penerbangan: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Bandara Asal (opsional)</label>
+                  <input type="text" placeholder="mis. CGK" value={penerbanganForm.bandara_asal} onChange={(e) => setPenerbanganForm((f) => ({ ...f, bandara_asal: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Bandara Tujuan (opsional)</label>
+                  <input type="text" placeholder="mis. JED" value={penerbanganForm.bandara_tujuan} onChange={(e) => setPenerbanganForm((f) => ({ ...f, bandara_tujuan: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Tanggal (opsional)</label>
+                  <input type="date" value={penerbanganForm.tanggal} onChange={(e) => setPenerbanganForm((f) => ({ ...f, tanggal: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jam (opsional)</label>
+                  <input type="time" value={penerbanganForm.jam} onChange={(e) => setPenerbanganForm((f) => ({ ...f, jam: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Catatan (opsional)</label>
+                <input type="text" value={penerbanganForm.catatan} onChange={(e) => setPenerbanganForm((f) => ({ ...f, catatan: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+              </div>
+              {penerbanganFormError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{penerbanganFormError}</p>}
+              <button type="submit" disabled={savingPenerbangan} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
+                {savingPenerbangan ? 'Menyimpan...' : editPenerbanganId ? 'Simpan perubahan' : 'Tambah penerbangan'}
               </button>
             </form>
           </div>
