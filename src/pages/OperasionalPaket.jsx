@@ -463,11 +463,9 @@ export default function OperasionalPaket() {
                 )}
                 {p.catatan && <p className="text-[11px] text-ink-soft mt-2 italic">{p.catatan}</p>}
                 {canManage && (
-                  <div className="mt-3">
-                    <GrupAksi>
-                      <Aksi onClick={() => openEditPenerbangan(p)}>Ubah</Aksi>
-                      <Aksi jenis="bahaya" onClick={() => handleHapusPenerbangan(p)}>Hapus</Aksi>
-                    </GrupAksi>
+                  <div className="mt-3 flex justify-end gap-1.5">
+                    <Aksi onClick={() => openEditPenerbangan(p)}>Ubah</Aksi>
+                    <Aksi jenis="bahaya" onClick={() => handleHapusPenerbangan(p)}>Hapus</Aksi>
                   </div>
                 )}
               </div>
