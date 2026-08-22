@@ -59,6 +59,15 @@ const NAV_GROUPS = [
   },
 ];
 
+// Label halaman turunan (mis. /paket/:id/rab) yang sendiri tidak punya
+// entri di NAV_GROUPS — cuma dipakai untuk menambah satu ruas terakhir
+// pada breadcrumb, diambil dari potongan terakhir path-nya.
+const SUB_HALAMAN_LABEL = {
+  rab: 'RAB & Realisasi',
+  manifest: 'Manifest',
+  operasional: 'Roomlist & Itinerary',
+};
+
 export default function Layout() {
   const { profile, signOut } = useAuth();
   const location = useLocation();
@@ -109,6 +118,24 @@ export default function Layout() {
     return found?.label ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // Ruas breadcrumb (grup / halaman / sub-halaman) dari lokasi saat ini —
+  // dipakai buat mengisi bar atas yang tadinya kosong, supaya orang selalu
+  // tahu sedang di menu mana tanpa perlu menebak dari sidebar.
+  const breadcrumb = useMemo(() => {
+    for (const group of visibleGroups) {
+      for (const item of group.items) {
+        if (location.pathname === item.to) return [group.label, item.label].filter(Boolean);
+        if (location.pathname.startsWith(`${item.to}/`)) {
+          const sisa = location.pathname.slice(item.to.length + 1).split('/');
+          const subLabel = SUB_HALAMAN_LABEL[sisa[sisa.length - 1]];
+          return [group.label, item.label, subLabel].filter(Boolean);
+        }
+      }
+    }
+    return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, profile?.role]);
 
   const NavList = ({ onNavigate }) => (
     <nav className="flex flex-col gap-1">
@@ -240,7 +267,15 @@ export default function Layout() {
           </div>
         )}
 
-        <div className="hidden md:flex items-center justify-end gap-2 px-6 pt-3 w-full max-w-7xl mx-auto">
+        <div className="hidden md:flex items-center justify-between gap-2 px-6 pt-3 w-full max-w-7xl mx-auto">
+          <nav aria-label="Lokasi saat ini" className="flex items-center gap-1.5 text-xs font-medium text-ink-soft min-w-0">
+            {breadcrumb.map((ruas, i) => (
+              <span key={i} className="flex items-center gap-1.5 min-w-0">
+                {i > 0 && <span aria-hidden="true">/</span>}
+                <span className={`truncate ${i === breadcrumb.length - 1 ? 'text-ink font-semibold' : ''}`}>{ruas}</span>
+              </span>
+            ))}
+          </nav>
           <NotificationBell />
         </div>
 
