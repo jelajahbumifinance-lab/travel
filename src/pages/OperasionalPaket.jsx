@@ -374,12 +374,12 @@ export default function OperasionalPaket() {
                   const penuh = anggota.length >= kapasitas;
                   return (
                     <div key={r.id} className={`card rounded-xl2 p-5 border-l-4 ${group.warna.border}`}>
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div>
-                          <p className="font-semibold">{KATEGORI_LABEL[r.kategori_kamar]}{r.nomor_kamar ? ` — No. ${r.nomor_kamar}` : ''}</p>
-                          <p className="text-[11px] text-ink-soft">{r.lokasi || 'Nama hotel belum diisi'}</p>
-                        </div>
-                        <Pil nada={penuh ? 'ok' : 'warn'}>{anggota.length} / {kapasitas}</Pil>
+                      <div className="mb-3">
+                        <p className="font-semibold flex items-center gap-2">
+                          {KATEGORI_LABEL[r.kategori_kamar]}{r.nomor_kamar ? ` — No. ${r.nomor_kamar}` : ''}
+                          <Pil nada={penuh ? 'ok' : 'warn'}>{anggota.length} / {kapasitas}</Pil>
+                        </p>
+                        <p className="text-[11px] text-ink-soft">{r.lokasi || 'Nama hotel belum diisi'}</p>
                       </div>
                       {canManage && (
                         <div className="flex justify-end gap-1.5 mb-3">
