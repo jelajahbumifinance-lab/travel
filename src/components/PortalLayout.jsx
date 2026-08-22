@@ -27,8 +27,8 @@ export default function PortalLayout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-20 bg-paper-raised border-b border-rule px-4 md:px-6 py-3 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col tema-kaca">
+      <header className="sticky top-0 z-20 header-kaca px-4 md:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <BrandIcon className="w-9 h-9" />
           <BrandWordmark />
@@ -61,6 +61,8 @@ export default function PortalLayout() {
           <Outlet />
         </Suspense>
       </main>
+
+      <div id="menu-portal-root" style={{ display: 'contents' }} />
     </div>
   );
 }

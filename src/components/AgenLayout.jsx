@@ -47,8 +47,8 @@ export default function AgenLayout() {
   );
 
   return (
-    <div className="min-h-screen md:flex">
-      <aside className="hidden md:flex flex-col w-64 shrink-0 h-screen sticky top-0 border-r border-rule bg-paper-raised p-4">
+    <div className="min-h-screen md:flex tema-kaca">
+      <aside className="card hidden md:flex flex-col w-64 shrink-0 h-[calc(100vh-1.5rem)] sticky top-3 my-3 ml-3 rounded-xl2 p-4">
         <Link to="/portal-agen" className="flex items-center gap-2.5 px-2 mb-6 rounded-md2 hover:bg-accent-soft py-1.5 -my-1">
           <BrandIcon className="w-9 h-9" />
           <span className="font-display font-bold flex-1 text-sm">JBI Finance</span>
@@ -81,7 +81,7 @@ export default function AgenLayout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden sticky top-0 z-20 bg-paper-raised border-b border-rule px-4 py-3 flex items-center justify-between">
+        <header className="md:hidden sticky top-0 z-20 header-kaca px-4 py-3 flex items-center justify-between">
           <Link to="/portal-agen" className="flex items-center gap-2 min-w-0">
             <BrandIcon className="w-8 h-8" />
             <span className="font-display font-bold text-sm">JBI Finance</span>
@@ -97,7 +97,7 @@ export default function AgenLayout() {
         </header>
 
         {mobileOpen && (
-          <div className="md:hidden bg-paper-raised border-b border-rule p-4">
+          <div className="md:hidden header-kaca p-4">
             <NavList onNavigate={() => setMobileOpen(false)} />
             <div className="pt-3 mt-3 border-t border-rule flex items-center gap-2">
               <button
@@ -124,6 +124,10 @@ export default function AgenLayout() {
           </Suspense>
         </main>
       </div>
+
+      {/* Tempat menempel dropdown MenuAksi/SearchSelect (lihat
+          components/ui.jsx & SearchSelect.jsx) lewat portal. */}
+      <div id="menu-portal-root" style={{ display: 'contents' }} />
     </div>
   );
 }

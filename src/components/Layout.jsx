@@ -194,7 +194,7 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-screen md:flex staf-kaca">
+    <div className="min-h-screen md:flex tema-kaca">
       <aside className="card hidden md:flex flex-col w-64 shrink-0 h-[calc(100vh-1.5rem)] sticky top-3 my-3 ml-3 rounded-xl2 p-4">
         <Link to="/dashboard" className="flex items-center gap-2.5 px-2 mb-6 rounded-md2 hover:bg-accent-soft py-1.5 -my-1">
           <BrandIcon className="w-9 h-9" />
@@ -289,7 +289,7 @@ export default function Layout() {
 
       {/* Tempat menempel dropdown MenuAksi (lihat components/ui.jsx) lewat
           portal — dengan display:contents supaya tidak ikut jadi kotak
-          layout apa pun, tapi anaknya tetap ada di dalam .staf-kaca ini
+          layout apa pun, tapi anaknya tetap ada di dalam .tema-kaca ini
           jadi warna teal/kaca-nya tetap terwarisi. */}
       <div id="menu-portal-root" style={{ display: 'contents' }} />
     </div>
