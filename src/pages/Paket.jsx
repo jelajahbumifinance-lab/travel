@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID, formatRibuan } from '../lib/format';
-import { Aksi, GrupAksi, Pil } from '../components/ui';
+import { Aksi, MenuAksi, ItemMenu, Pil } from '../components/ui';
 
 const JENIS_LABEL = {
   UMRAH: 'Umrah',
@@ -265,14 +265,16 @@ export default function Paket() {
                     <Pil nada={STATUS_PAKET[p.status]?.nada || 'mute'}>{STATUS_PAKET[p.status]?.label || p.status}</Pil>
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <GrupAksi>
+                    <div className="flex items-center justify-center gap-1.5">
                       <Aksi jenis="utama" onClick={() => navigate(`/paket/${p.id}/rab`)}>Kelola RAB</Aksi>
-                      <Aksi onClick={() => navigate(`/paket/${p.id}/manifest`)}>Manifest</Aksi>
-                      <Aksi onClick={() => navigate(`/paket/${p.id}/operasional`)}>Roomlist &amp; Itinerary</Aksi>
-                      {canWrite && <Aksi onClick={() => openEdit(p)}>Ubah</Aksi>}
-                      {canWrite && p.is_active && <Aksi jenis="bahaya" onClick={() => handleNonaktifkan(p)}>Nonaktifkan</Aksi>}
-                      {canWrite && !p.is_active && <Aksi jenis="utama" onClick={() => handleAktifkanKembali(p)}>Aktifkan Kembali</Aksi>}
-                    </GrupAksi>
+                      <MenuAksi>
+                        <ItemMenu onClick={() => navigate(`/paket/${p.id}/manifest`)}>Manifest</ItemMenu>
+                        <ItemMenu onClick={() => navigate(`/paket/${p.id}/operasional`)}>Roomlist &amp; Itinerary</ItemMenu>
+                        {canWrite && <ItemMenu onClick={() => openEdit(p)}>Ubah</ItemMenu>}
+                        {canWrite && p.is_active && <ItemMenu jenis="bahaya" onClick={() => handleNonaktifkan(p)}>Nonaktifkan</ItemMenu>}
+                        {canWrite && !p.is_active && <ItemMenu onClick={() => handleAktifkanKembali(p)}>Aktifkan Kembali</ItemMenu>}
+                      </MenuAksi>
+                    </div>
                   </td>
                 </tr>
               ))}

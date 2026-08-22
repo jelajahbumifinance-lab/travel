@@ -250,6 +250,12 @@ export default function Layout() {
           </Suspense>
         </main>
       </div>
+
+      {/* Tempat menempel dropdown MenuAksi (lihat components/ui.jsx) lewat
+          portal — dengan display:contents supaya tidak ikut jadi kotak
+          layout apa pun, tapi anaknya tetap ada di dalam .staf-kaca ini
+          jadi warna teal/kaca-nya tetap terwarisi. */}
+      <div id="menu-portal-root" style={{ display: 'contents' }} />
     </div>
   );
 }
