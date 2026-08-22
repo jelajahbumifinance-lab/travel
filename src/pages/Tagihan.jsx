@@ -151,6 +151,19 @@ export default function Tagihan() {
     return () => { cancelled = true; };
   }, [dateFilter]);
 
+  // Pilihan di filter "Paket" HARUS mencakup paket yang sudah nonaktif/
+  // selesai juga — paketList (dipakai form "Daftarkan Jamaah" di bawah)
+  // sengaja cuma paket aktif supaya tidak salah daftar ke paket yang sudah
+  // ditutup, tapi itu jadi bikin filter ini tidak bisa mencari jamaah dari
+  // paket yang sudah nonaktif padahal datanya masih ada di tabel. Diambil
+  // langsung dari `rows` (v_pendaftaran_status, tidak difilter is_active)
+  // supaya semua paket yang punya jamaah tetap bisa dicari.
+  const daftarPaketFilter = useMemo(() => {
+    const map = new Map();
+    rows.forEach((r) => { if (r.paket_id) map.set(r.paket_id, r.paket_nama); });
+    return Array.from(map, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
       if (statusFilter && r.computed_status !== statusFilter) return false;
@@ -445,7 +458,7 @@ export default function Tagihan() {
             <SearchSelect
               value={paketFilter}
               onChange={setPaketFilter}
-              options={paketList.map((p) => ({ value: p.id, label: p.nama }))}
+              options={daftarPaketFilter}
               placeholder="Semua paket"
               emptyLabel="Semua paket"
             />
