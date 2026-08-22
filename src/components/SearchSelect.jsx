@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Combobox cari-lalu-pilih — pengganti <select> polos untuk daftar yang bisa
@@ -38,7 +39,9 @@ export default function SearchSelect({
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
   const wrapRef = useRef(null);
+  const menuRef = useRef(null);
   const debounceRef = useRef(null);
 
   const selectedLabel = !value ? '' : (
@@ -69,11 +72,41 @@ export default function SearchSelect({
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current?.contains(e.target)) return;
+      if (menuRef.current?.contains(e.target)) return;
+      setOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Dropdown-nya dirender lewat portal (lihat bawah) supaya tidak terjebak
+  // di dalam stacking context kartu kaca pembungkusnya sendiri — kartu yang
+  // punya backdrop-filter otomatis jadi stacking context baru, jadi z-index
+  // anak di dalamnya (dropdown ini) tidak pernah bisa menang menimpa kartu
+  // LAIN yang taruhannya di DOM setelahnya (mis. kartu tabel di bawah form
+  // filter), walau z-index-nya sudah tinggi. Makanya posisinya dihitung
+  // manual dari lokasi kotak input, ditutup saat discroll/diresize karena
+  // dropdown ini cuma dipakai sebentar, tidak perlu tetap menempel.
+  function openDropdown() {
+    if (wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    }
+    setOpen(true);
+    setQuery('');
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function onTutup() { setOpen(false); }
+    window.addEventListener('scroll', onTutup, true);
+    window.addEventListener('resize', onTutup);
+    return () => {
+      window.removeEventListener('scroll', onTutup, true);
+      window.removeEventListener('resize', onTutup);
+    };
+  }, [open]);
 
   function pick(opt) {
     onChange(opt ? opt.value : '');
@@ -104,7 +137,7 @@ export default function SearchSelect({
         disabled={disabled}
         value={open ? query : selectedLabel}
         placeholder={placeholder}
-        onFocus={() => { setOpen(true); setQuery(''); }}
+        onFocus={openDropdown}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         className={`field w-full rounded-md2 px-4 py-2.5 text-sm ${showClear ? 'pr-9' : ''}`}
@@ -120,8 +153,12 @@ export default function SearchSelect({
           ×
         </button>
       )}
-      {open && (
-        <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-md2 border border-rule bg-paper-raised shadow-card">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+          className="z-50 max-h-64 overflow-y-auto rounded-md2 border border-rule bg-paper-raised shadow-card"
+        >
           {loading && <div className="px-4 py-2.5 text-sm text-ink-soft">Mencari...</div>}
           {!loading && list.length === 0 && (
             <div className="px-4 py-2.5 text-sm text-ink-soft">Tidak ditemukan.</div>
@@ -137,7 +174,8 @@ export default function SearchSelect({
               {o.sub && <span className="block text-[11px] text-ink-soft">{o.sub}</span>}
             </button>
           ))}
-        </div>
+        </div>,
+        document.getElementById('menu-portal-root') || document.body
       )}
     </div>
   );
