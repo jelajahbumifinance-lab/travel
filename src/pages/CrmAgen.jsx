@@ -422,6 +422,7 @@ export default function CrmAgen() {
                   </th>
                 )}
                 <th className="p-4">Nama</th>
+                <th className="p-4 whitespace-nowrap">No. HP</th>
                 <th className="p-4 whitespace-nowrap">Jenis Kelamin</th>
                 <th className="p-4 whitespace-nowrap">Agen</th>
                 <th className="p-4 whitespace-nowrap">Minat Paket</th>
@@ -434,10 +435,10 @@ export default function CrmAgen() {
             </thead>
             <tbody className="divide-y divide-rule">
               {loading && (
-                <tr><td colSpan={10} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
+                <tr><td colSpan={11} className="p-6 text-center text-ink-soft">Memuat...</td></tr>
               )}
               {!loading && pageRows.length === 0 && (
-                <tr><td colSpan={10} className="p-10 text-center text-ink-soft">Tidak ada calon jamaah yang cocok.</td></tr>
+                <tr><td colSpan={11} className="p-10 text-center text-ink-soft">Tidak ada calon jamaah yang cocok.</td></tr>
               )}
               {pageRows.map((r) => {
                 const wa = waLink(r.no_hp);
@@ -451,8 +452,10 @@ export default function CrmAgen() {
                     )}
                     <td className="p-4">
                       <p className="font-medium">{r.nama}</p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[11px] text-ink-soft">{r.no_hp}</p>
+                        <span>{r.no_hp}</span>
                         {wa && (
                           <a
                             href={wa}
