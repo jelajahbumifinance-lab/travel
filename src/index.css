@@ -189,3 +189,80 @@ html.dark .pill-ok { color: #5EDCD6; background: #0B4F57; }
 .aksi-bahaya:hover:not(:disabled) { background: #FECACA; }
 html.dark .aksi-bahaya { color: #F87171; background: rgba(220,38,38,.18); }
 html.dark .aksi-bahaya:hover:not(:disabled) { background: rgba(220,38,38,.30); }
+
+/* ============================================================
+   TEMA KACA (GLASSMORPHISM) — khusus shell aplikasi staf, diberi
+   lewat class `.staf-kaca` di pembungkus terluar Layout.jsx. Publik
+   (/minat), login, dan portal agen/jamaah TIDAK ikut berubah — cuma
+   dashboard staf yang dipindah warna utamanya dari oranye ke tosca
+   (dominan di logo) dan kartunya jadi kaca buram, latar tetap putih.
+   ============================================================ */
+.staf-kaca {
+  --accent: 13 128 136;             /* teal-600 #0D8088 */
+  --accent-hover: 10 102 112;       /* teal-700 #0A6670 */
+  --accent-text: 10 102 112;        /* teal-700 #0A6670 */
+  --accent-soft: 214 243 241;       /* teal-100 #D6F3F1 */
+  --accent-soft-hover: 191 234 231; /* #BFEAE7 */
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+}
+html.dark .staf-kaca {
+  --accent: 15 156 166;             /* teal-500 #0F9CA6 */
+  --accent-hover: 13 128 136;       /* teal-600 #0D8088 */
+  --accent-text: 94 220 214;        /* teal-300 #5EDCD6 */
+  --accent-soft: 11 79 87;          /* teal-800 #0B4F57 */
+  --accent-soft-hover: 14 98 108;   /* #0E626C */
+}
+
+/* Kilau tosca lembut di latar putih — cukup untuk memberi kartu kaca
+   sesuatu untuk "diburamkan", tanpa membuat halaman terlihat berwarna. */
+.staf-kaca::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(700px 460px at 6% -6%, rgb(15 156 166 / 0.14), transparent 62%),
+    radial-gradient(600px 420px at 100% 0%, rgb(240 121 26 / 0.07), transparent 60%),
+    radial-gradient(800px 520px at 50% 110%, rgb(15 156 166 / 0.08), transparent 65%);
+}
+html.dark .staf-kaca::before {
+  background:
+    radial-gradient(700px 460px at 6% -6%, rgb(15 156 166 / 0.16), transparent 62%),
+    radial-gradient(600px 420px at 100% 0%, rgb(249 115 22 / 0.06), transparent 60%),
+    radial-gradient(800px 520px at 50% 110%, rgb(15 156 166 / 0.10), transparent 65%);
+}
+
+/* Kartu kaca — transparan + blur, menimpa .card solid bawaan cuma di
+   dalam shell staf (dipakai juga oleh sidebar & header lewat class
+   `card` langsung, supaya bahasa visualnya konsisten satu sumber). */
+.staf-kaca .card {
+  background: rgb(var(--paper-raised) / 0.6);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 10px 30px rgb(10 102 112 / 0.10);
+}
+html.dark .staf-kaca .card {
+  background: rgb(var(--paper-raised) / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.06);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 30px rgb(0 0 0 / 0.35);
+}
+
+.staf-kaca .field {
+  background: rgb(var(--paper-raised) / 0.85);
+}
+
+/* Bilah atas (mobile) — varian tanpa sudut lengkung penuh seperti kartu. */
+.staf-kaca .header-kaca {
+  background: rgb(var(--paper-raised) / 0.7);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgb(255 255 255 / 0.5);
+}
+html.dark .staf-kaca .header-kaca {
+  background: rgb(var(--paper-raised) / 0.65);
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+}
