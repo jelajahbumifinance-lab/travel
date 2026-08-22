@@ -32,7 +32,10 @@ export default function Paket() {
   // Sebelum ini tidak ada cara melihatnya lagi setelah dinonaktifkan —
   // terasa seperti "hilang". Toggle ini membuatnya tetap terlihat &
   // bisa diaktifkan kembali kalau salah klik.
-  const [filterAktif, setFilterAktif] = useState('AKTIF');
+  // "Selesai" (status paket, independen dari is_active) dipisah jadi tab
+  // sendiri supaya paket yang sudah kelar tidak nyampur dengan yang masih
+  // berjalan di tab Aktif — ini juga yang jadi sumber halaman Jamaah Alumni.
+  const [filterTampilan, setFilterTampilan] = useState('AKTIF');
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -70,8 +73,12 @@ export default function Paket() {
   useEffect(() => { load(); }, [load]);
 
   const paketTerlihat = useMemo(
-    () => paket.filter((p) => (filterAktif === 'AKTIF' ? p.is_active : !p.is_active)),
-    [paket, filterAktif]
+    () => paket.filter((p) => {
+      if (filterTampilan === 'SELESAI') return p.status === 'SELESAI';
+      if (filterTampilan === 'AKTIF') return p.is_active && p.status !== 'SELESAI';
+      return !p.is_active && p.status !== 'SELESAI';
+    }),
+    [paket, filterTampilan]
   );
 
   function openAdd() {
@@ -208,17 +215,24 @@ export default function Paket() {
       <div className="flex gap-2 mb-4">
         <button
           type="button"
-          onClick={() => setFilterAktif('AKTIF')}
-          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterAktif === 'AKTIF' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
+          onClick={() => setFilterTampilan('AKTIF')}
+          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterTampilan === 'AKTIF' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
         >
           Aktif
         </button>
         <button
           type="button"
-          onClick={() => setFilterAktif('NONAKTIF')}
-          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterAktif === 'NONAKTIF' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
+          onClick={() => setFilterTampilan('NONAKTIF')}
+          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterTampilan === 'NONAKTIF' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
         >
           Nonaktif
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterTampilan('SELESAI')}
+          className={`text-xs font-semibold px-4 py-2 rounded-md2 ${filterTampilan === 'SELESAI' ? 'bg-accent text-white' : 'bg-accent-soft text-accent-text'}`}
+        >
+          Selesai
         </button>
       </div>
 
@@ -242,7 +256,9 @@ export default function Paket() {
               {!loading && paketTerlihat.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-10 text-center text-ink-soft">
-                    {filterAktif === 'AKTIF' ? 'Belum ada paket keberangkatan.' : 'Tidak ada paket yang dinonaktifkan.'}
+                    {filterTampilan === 'AKTIF' && 'Belum ada paket keberangkatan.'}
+                    {filterTampilan === 'NONAKTIF' && 'Tidak ada paket yang dinonaktifkan.'}
+                    {filterTampilan === 'SELESAI' && 'Belum ada paket yang selesai.'}
                   </td>
                 </tr>
               )}
