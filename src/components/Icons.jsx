@@ -151,6 +151,16 @@ export function IconProfil(props) {
   );
 }
 
+export function IconAlumni(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 4 2.5 8.5 12 13l9.5-4.5L12 4Z" />
+      <path d="M6.5 10.8v4.6c0 1.5 2.5 2.6 5.5 2.6s5.5-1.1 5.5-2.6v-4.6" />
+      <path d="M21.5 8.5v6" />
+    </svg>
+  );
+}
+
 export function IconGaleri(props) {
   return (
     <svg {...base} {...props}>
