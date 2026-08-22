@@ -285,6 +285,7 @@ export default function Leads() {
           no_hp: detailTarget.no_hp,
           jenis_kelamin: detailTarget.jenis_kelamin || '',
           paket_id: detailTarget.minat_paket_id || '',
+          jumlah_pax: detailTarget.jumlah_pax || 1,
           lead_id: detailTarget.id,
         },
       },

@@ -68,6 +68,11 @@ export default function Tagihan() {
     jamaah_id: '', nama: '', nik: '', no_hp: '', jenis_kelamin: '', agen_id: '',
     paket_id: '', total_tagihan: '', jatuh_tempo_berikutnya: '',
   });
+  // Kalau lead yang didaftarkan punya jumlah_pax > 1 (mis. 1 lead mewakili
+  // rombongan keluarga), form ini jalan sebagai wizard "Jamaah X dari N" —
+  // submit tidak langsung menutup modal, tapi lanjut ke jamaah berikutnya
+  // dengan paket yang sama, sampai semua orang di rombongan tercatat.
+  const [daftarPax, setDaftarPax] = useState({ ke: 1, total: 1 });
   const [daftarError, setDaftarError] = useState('');
   const [savingDaftar, setSavingDaftar] = useState(false);
 
@@ -171,6 +176,7 @@ export default function Tagihan() {
       ...prefill,
       total_tagihan: paketPrefill ? formatRibuan(String(paketPrefill.harga_default)) : (prefill?.total_tagihan || ''),
     });
+    setDaftarPax({ ke: 1, total: Math.max(1, Number(prefill?.jumlah_pax) || 1) });
     setDaftarError('');
     setShowDaftar(true);
   }
@@ -255,6 +261,23 @@ export default function Tagihan() {
     if (daftarForm.lead_id) {
       await supabase.from('leads').update({ status: 'JADI_JAMAAH' }).eq('id', daftarForm.lead_id);
     }
+
+    if (daftarPax.ke < daftarPax.total) {
+      // Masih ada anggota rombongan lain dari lead yang sama (jumlah_pax > 1)
+      // — form dilanjutkan untuk orang berikutnya dengan paket yang sama,
+      // bukan langsung ditutup, supaya staf tidak perlu buka form dari awal
+      // satu-satu untuk tiap anggota.
+      const paketSaatIni = paketList.find((p) => p.id === daftarForm.paket_id);
+      setDaftarForm((f) => ({
+        ...f,
+        jamaah_id: '', nama: '', nik: '', no_hp: '', jenis_kelamin: '',
+        total_tagihan: paketSaatIni ? formatRibuan(String(paketSaatIni.harga_default)) : f.total_tagihan,
+      }));
+      setDaftarPax((p) => ({ ...p, ke: p.ke + 1 }));
+      load();
+      return;
+    }
+
     setShowDaftar(false);
     load();
   }
@@ -519,10 +542,15 @@ export default function Tagihan() {
           onMouseDown={(e) => { if (e.target === e.currentTarget) setShowDaftar(false); }}
         >
           <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
+            <div className={`flex items-center justify-between ${daftarPax.total > 1 ? 'mb-2' : 'mb-5'}`}>
               <h2 className="font-display text-lg font-semibold">Daftarkan Jamaah</h2>
               <button type="button" onClick={() => setShowDaftar(false)} aria-label="Tutup" className="text-xl">×</button>
             </div>
+            {daftarPax.total > 1 && (
+              <p className="text-xs font-semibold text-accent-text bg-accent-soft inline-block px-2.5 py-1 rounded-md2 mb-4">
+                Jamaah {daftarPax.ke} dari {daftarPax.total} — rombongan dari lead yang sama
+              </p>
+            )}
 
             <div className="flex gap-2 mb-4 text-xs font-semibold">
               <button
@@ -648,7 +676,11 @@ export default function Tagihan() {
                 disabled={savingDaftar}
                 className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2"
               >
-                {savingDaftar ? 'Menyimpan...' : 'Daftarkan'}
+                {savingDaftar
+                  ? 'Menyimpan...'
+                  : daftarPax.ke < daftarPax.total
+                    ? `Simpan & Lanjut ke Jamaah ${daftarPax.ke + 1}`
+                    : 'Daftarkan'}
               </button>
             </form>
           </div>
