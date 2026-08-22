@@ -381,6 +381,13 @@ export default function OperasionalPaket() {
                         </div>
                         <Pil nada={penuh ? 'ok' : 'warn'}>{anggota.length} / {kapasitas}</Pil>
                       </div>
+                      {canManage && (
+                        <div className="flex justify-end gap-1.5 mb-3">
+                          <Aksi onClick={() => openAnggota(r)}>Atur Anggota</Aksi>
+                          <Aksi onClick={() => openEditRoom(r)}>Ubah</Aksi>
+                          <Aksi jenis="bahaya" onClick={() => handleHapusRoom(r)}>Hapus</Aksi>
+                        </div>
+                      )}
                       <div className="text-sm space-y-1 mb-3 min-h-[24px]">
                         {anggota.length === 0 && <p className="text-ink-soft text-xs">Belum ada anggota.</p>}
                         {anggota.map((a) => (
@@ -391,13 +398,6 @@ export default function OperasionalPaket() {
                         )}
                       </div>
                       {r.catatan && <p className="text-[11px] text-ink-soft mb-3 italic">{r.catatan}</p>}
-                      {canManage && (
-                        <GrupAksi>
-                          <Aksi onClick={() => openAnggota(r)}>Atur Anggota</Aksi>
-                          <Aksi onClick={() => openEditRoom(r)}>Ubah</Aksi>
-                          <Aksi jenis="bahaya" onClick={() => handleHapusRoom(r)}>Hapus</Aksi>
-                        </GrupAksi>
-                      )}
                     </div>
                   );
                 })}
@@ -455,19 +455,19 @@ export default function OperasionalPaket() {
               <div key={p.id} className="card rounded-xl2 p-5">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <Pil nada={p.jenis === 'BERANGKAT' ? 'info' : 'ok'}>{JENIS_PENERBANGAN_LABEL[p.jenis]}</Pil>
-                  {p.tanggal && <p className="text-xs text-ink-soft">{new Date(p.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}{p.jam ? ` · ${p.jam.slice(0, 5)}` : ''}</p>}
+                  {canManage && (
+                    <div className="flex gap-1.5">
+                      <Aksi onClick={() => openEditPenerbangan(p)}>Ubah</Aksi>
+                      <Aksi jenis="bahaya" onClick={() => handleHapusPenerbangan(p)}>Hapus</Aksi>
+                    </div>
+                  )}
                 </div>
                 <p className="font-semibold">{p.maskapai || 'Maskapai belum diisi'}{p.nomor_penerbangan ? ` — ${p.nomor_penerbangan}` : ''}</p>
+                {p.tanggal && <p className="text-xs text-ink-soft mt-0.5">{new Date(p.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}{p.jam ? ` · ${p.jam.slice(0, 5)}` : ''}</p>}
                 {(p.bandara_asal || p.bandara_tujuan) && (
                   <p className="text-sm text-ink-soft mt-1">{p.bandara_asal || '?'} → {p.bandara_tujuan || '?'}</p>
                 )}
                 {p.catatan && <p className="text-[11px] text-ink-soft mt-2 italic">{p.catatan}</p>}
-                {canManage && (
-                  <div className="mt-3 flex justify-end gap-1.5">
-                    <Aksi onClick={() => openEditPenerbangan(p)}>Ubah</Aksi>
-                    <Aksi jenis="bahaya" onClick={() => handleHapusPenerbangan(p)}>Hapus</Aksi>
-                  </div>
-                )}
               </div>
             ))}
           </div>
