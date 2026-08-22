@@ -1,7 +1,7 @@
 import { useState, useMemo, Suspense } from 'react';
 import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { BrandIcon } from './BrandMark';
+import { BrandIcon, BrandWordmark } from './BrandMark';
 import NotificationBell from './NotificationBell';
 import { IconDashboard, IconBukuKas, IconRekening, IconPaket, IconTagihan, IconVendor, IconAgen, IconKomisi, IconLaporan, IconJejakAudit, IconUndangStaf, IconLeads, IconHelpdesk, IconGaleri, IconAlumni } from './Icons';
 
@@ -198,7 +198,7 @@ export default function Layout() {
       <aside className="card hidden md:flex flex-col w-64 shrink-0 h-[calc(100vh-1.5rem)] sticky top-3 my-3 ml-3 rounded-xl2 p-4">
         <Link to="/dashboard" className="flex items-center gap-2.5 px-2 mb-6 rounded-md2 hover:bg-accent-soft py-1.5 -my-1">
           <BrandIcon className="w-9 h-9" />
-          <span className="font-display font-bold flex-1 text-sm">JBI Finance</span>
+          <BrandWordmark />
         </Link>
 
         <div className="flex-1 overflow-y-auto">
@@ -231,7 +231,7 @@ export default function Layout() {
         <header className="md:hidden sticky top-0 z-20 header-kaca px-4 py-3 flex items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
             <BrandIcon className="w-8 h-8" />
-            <span className="font-display font-bold text-sm">JBI Finance</span>
+            <BrandWordmark />
           </Link>
           <div className="flex items-center gap-1">
             <NotificationBell />
