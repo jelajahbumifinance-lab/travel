@@ -21,19 +21,22 @@ export default function NotificationBell() {
   const [piutang, setPiutang] = useState([]);
   const [diajukan, setDiajukan] = useState([]);
   const [siapCair, setSiapCair] = useState([]);
+  const [tiketBaru, setTiketBaru] = useState([]);
   const [loading, setLoading] = useState(true);
   const wrapRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [piutangRes, diajukanRes, siapCairRes] = await Promise.all([
+    const [piutangRes, diajukanRes, siapCairRes, tiketRes] = await Promise.all([
       supabase.from('v_pendaftaran_status').select('id, jamaah_nama, sisa, jatuh_tempo_berikutnya').eq('computed_status', 'LEWAT_TEMPO'),
       supabase.from('v_komisi_agen').select('id, agen_nama, nominal').eq('status', 'DIAJUKAN'),
       supabase.from('v_komisi_agen').select('id, agen_nama, nominal').eq('status', 'AKRUAL').eq('jamaah_lunas', true),
+      supabase.from('tiket_bantuan').select('id, subjek, agen:agen_id(full_name)').eq('status', 'BUKA'),
     ]);
     setPiutang(piutangRes.data || []);
     setDiajukan(diajukanRes.data || []);
     setSiapCair(siapCairRes.data || []);
+    setTiketBaru(tiketRes.data || []);
     setLoading(false);
   }, []);
 
@@ -47,7 +50,7 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const total = piutang.length + diajukan.length + siapCair.length;
+  const total = piutang.length + diajukan.length + siapCair.length + tiketBaru.length;
 
   function bukaHalaman(path) {
     setOpen(false);
@@ -78,8 +81,21 @@ export default function NotificationBell() {
           {loading && <p className="p-4 text-sm text-ink-soft">Memuat...</p>}
           {!loading && total === 0 && <p className="p-4 text-sm text-ink-soft">Tidak ada notifikasi.</p>}
 
-          {!loading && diajukan.length > 0 && (
+          {!loading && tiketBaru.length > 0 && (
             <div className="p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-accent-text px-1 mb-1.5">Tiket Bantuan Baru</p>
+              {tiketBaru.slice(0, 5).map((t) => (
+                <button key={t.id} type="button" onClick={() => bukaHalaman('/helpdesk')} className="w-full text-left px-2 py-2 rounded-md2 hover:bg-accent-soft text-sm">
+                  <span className="font-medium block">{t.subjek}</span>
+                  <span className="text-[11px] text-ink-soft">{t.agen?.full_name || '-'}</span>
+                </button>
+              ))}
+              {tiketBaru.length > 5 && <p className="text-[11px] text-ink-soft px-2 mt-1">+{tiketBaru.length - 5} lainnya</p>}
+            </div>
+          )}
+
+          {!loading && diajukan.length > 0 && (
+            <div className={`p-3 ${tiketBaru.length > 0 ? 'border-t border-rule' : ''}`}>
               <p className="text-[11px] font-bold uppercase tracking-wider text-accent-text px-1 mb-1.5">Pencairan Diajukan Agen</p>
               {diajukan.slice(0, 5).map((k) => (
                 <button key={k.id} type="button" onClick={() => bukaHalaman('/komisi')} className="w-full text-left px-2 py-2 rounded-md2 hover:bg-accent-soft text-sm">
