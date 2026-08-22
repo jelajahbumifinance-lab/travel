@@ -83,6 +83,10 @@ export default function Leads() {
   const [saving, setSaving] = useState(false);
 
   const [detailTarget, setDetailTarget] = useState(null);
+  const [detailNama, setDetailNama] = useState('');
+  const [detailNoHp, setDetailNoHp] = useState('');
+  const [detailEmail, setDetailEmail] = useState('');
+  const [detailPaketId, setDetailPaketId] = useState('');
   const [detailCatatan, setDetailCatatan] = useState('');
   const [detailPax, setDetailPax] = useState('');
   const [detailFollowUp, setDetailFollowUp] = useState('');
@@ -232,6 +236,10 @@ export default function Leads() {
 
   function openDetail(row) {
     setDetailTarget(row);
+    setDetailNama(row.nama || '');
+    setDetailNoHp(row.no_hp || '');
+    setDetailEmail(row.email || '');
+    setDetailPaketId(row.minat_paket_id || '');
     setDetailCatatan(row.catatan || '');
     setDetailPax(row.jumlah_pax || '');
     setDetailFollowUp(row.follow_up_at || '');
@@ -241,6 +249,10 @@ export default function Leads() {
 
   function detailPayload() {
     return {
+      nama: detailNama.trim(),
+      no_hp: detailNoHp.trim(),
+      email: detailEmail.trim() || null,
+      minat_paket_id: detailPaketId || null,
       catatan: detailCatatan.trim() || null,
       jumlah_pax: detailPax ? Number(detailPax) : null,
       follow_up_at: detailFollowUp || null,
@@ -250,6 +262,10 @@ export default function Leads() {
 
   async function ubahStatus(status) {
     if (!detailTarget) return;
+    if (!detailNama.trim() || !detailNoHp.trim()) {
+      setDetailError('Nama dan No. HP wajib diisi.');
+      return;
+    }
     setDetailError('');
     setSavingDetail(true);
     const { error: err } = await supabase.from('leads').update({ status, ...detailPayload() }).eq('id', detailTarget.id);
@@ -264,6 +280,10 @@ export default function Leads() {
 
   async function simpanPerubahan() {
     if (!detailTarget) return;
+    if (!detailNama.trim() || !detailNoHp.trim()) {
+      setDetailError('Nama dan No. HP wajib diisi.');
+      return;
+    }
     setDetailError('');
     setSavingDetail(true);
     const { error: err } = await supabase.from('leads').update(detailPayload()).eq('id', detailTarget.id);
@@ -278,14 +298,18 @@ export default function Leads() {
 
   function daftarkanSebagaiJamaah() {
     if (!detailTarget) return;
+    // Pakai nilai yang sedang diedit di form (detailNama dkk.), bukan
+    // detailTarget yang cuma snapshot saat modal dibuka — supaya perubahan
+    // yang belum sempat "Simpan Perubahan" tetap ikut terbawa saat
+    // langsung klik "Daftarkan sebagai Jamaah".
     navigate('/tagihan', {
       state: {
         prefillDaftar: {
-          nama: detailTarget.nama,
-          no_hp: detailTarget.no_hp,
-          jenis_kelamin: detailTarget.jenis_kelamin || '',
-          paket_id: detailTarget.minat_paket_id || '',
-          jumlah_pax: detailTarget.jumlah_pax || 1,
+          nama: detailNama.trim() || detailTarget.nama,
+          no_hp: detailNoHp.trim() || detailTarget.no_hp,
+          jenis_kelamin: detailJenisKelamin || '',
+          paket_id: detailPaketId || '',
+          jumlah_pax: detailPax || detailTarget.jumlah_pax || 1,
           lead_id: detailTarget.id,
         },
       },
@@ -601,9 +625,13 @@ export default function Leads() {
             </div>
 
             <div className="space-y-1 text-sm mb-4">
-              <p><span className="text-ink-soft">No. HP:</span> {detailTarget.no_hp}</p>
-              {detailTarget.email && <p><span className="text-ink-soft">Email:</span> {detailTarget.email}</p>}
-              <p><span className="text-ink-soft">Minat Paket:</span> {detailTarget.paket?.nama || '-'}</p>
+              {!canWrite && (
+                <>
+                  <p><span className="text-ink-soft">No. HP:</span> {detailTarget.no_hp}</p>
+                  {detailTarget.email && <p><span className="text-ink-soft">Email:</span> {detailTarget.email}</p>}
+                  <p><span className="text-ink-soft">Minat Paket:</span> {detailTarget.paket?.nama || '-'}</p>
+                </>
+              )}
               <p><span className="text-ink-soft">Sumber:</span> {SUMBER_LABEL[detailTarget.sumber] || detailTarget.sumber}</p>
               <p><span className="text-ink-soft">Tanggal Masuk:</span> {tanggalID(detailTarget.created_at)}</p>
               <p className="flex items-center gap-2"><span className="text-ink-soft">Status:</span> <Pil nada={STATUS_LEAD[detailTarget.status]?.nada || 'mute'}>{STATUS_LEAD[detailTarget.status]?.label}</Pil></p>
@@ -611,6 +639,30 @@ export default function Leads() {
 
             {canWrite && (
               <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nama</label>
+                    <input type="text" value={detailNama} onChange={(e) => setDetailNama(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-ink-soft block mb-1.5">No. HP</label>
+                    <input type="text" value={detailNoHp} onChange={(e) => setDetailNoHp(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Email (opsional)</label>
+                  <input type="email" value={detailEmail} onChange={(e) => setDetailEmail(e.target.value)} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div className="mb-4">
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Minat Paket</label>
+                  <SearchSelect
+                    value={detailPaketId}
+                    onChange={setDetailPaketId}
+                    options={paketList.map((p) => ({ value: p.id, label: p.nama }))}
+                    placeholder="Ketik nama paket..."
+                    emptyLabel="Belum ada minat spesifik"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jumlah Pax</label>
