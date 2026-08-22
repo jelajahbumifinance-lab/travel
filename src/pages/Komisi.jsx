@@ -43,6 +43,14 @@ export default function Komisi() {
   const [cairError, setCairError] = useState('');
   const [savingCair, setSavingCair] = useState(false);
 
+  // Akrual manual — untuk pendaftaran lama yang terlanjur tidak dapat
+  // akrual otomatis karena Aturan Komisi-nya baru dibuat belakangan
+  // (trigger cuma jalan sekali, saat pendaftaran itu pertama kali dibuat).
+  const [showAkrualManual, setShowAkrualManual] = useState(false);
+  const [akrualManualForm, setAkrualManualForm] = useState({ pendaftaran_id: '', nominal: '' });
+  const [akrualManualError, setAkrualManualError] = useState('');
+  const [savingAkrualManual, setSavingAkrualManual] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -175,6 +183,71 @@ export default function Komisi() {
     load();
   }
 
+  // ---- Akrual komisi manual (pendaftaran lama yang aturannya baru dibuat belakangan) ----
+  function openAkrualManual() {
+    setAkrualManualForm({ pendaftaran_id: '', nominal: '' });
+    setAkrualManualError('');
+    setShowAkrualManual(true);
+  }
+
+  async function fetchPendaftaranUntukAkrual(q) {
+    let query = supabase
+      .from('pendaftaran')
+      .select('id, paket_id, total_tagihan, jamaah:jamaah_id!inner(nama, agen_id, agen:agen_id(full_name)), paket:paket_id(nama)')
+      .not('jamaah.agen_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (q.trim()) query = query.ilike('jamaah.nama', `%${q.trim()}%`);
+    const { data } = await query;
+    return (data || []).map((p) => ({
+      value: p.id,
+      label: `${p.jamaah?.nama} — ${p.paket?.nama}`,
+      sub: `Agen: ${p.jamaah?.agen?.full_name || '-'}`,
+    }));
+  }
+
+  async function pilihPendaftaranAkrual(pendaftaranId) {
+    setAkrualManualForm((f) => ({ ...f, pendaftaran_id: pendaftaranId }));
+    if (!pendaftaranId) return;
+    // Coba tebak nominal dari Aturan Komisi yang cocok, persis logika
+    // trigger otomatis (khusus agen dulu, baru default paket) — cuma
+    // saran awal, staf tetap bisa mengubahnya sebelum disimpan.
+    const { data } = await supabase
+      .from('pendaftaran')
+      .select('paket_id, total_tagihan, jamaah:jamaah_id(agen_id)')
+      .eq('id', pendaftaranId)
+      .single();
+    if (!data) return;
+    const rule = aturan.find((a) => a.paket_id === data.paket_id && a.agen_id === data.jamaah?.agen_id)
+      || aturan.find((a) => a.paket_id === data.paket_id && !a.agen_id);
+    if (rule) {
+      const nominal = rule.tipe === 'PERSEN' ? Math.round(data.total_tagihan * rule.nilai / 100) : rule.nilai;
+      setAkrualManualForm((f) => ({ ...f, nominal: formatRibuan(String(nominal)) }));
+    }
+  }
+
+  async function handleSubmitAkrualManual(e) {
+    e.preventDefault();
+    setAkrualManualError('');
+    const nominal = Number(String(akrualManualForm.nominal).replace(/\D/g, ''));
+    if (!akrualManualForm.pendaftaran_id || !nominal) {
+      setAkrualManualError('Pilih pendaftaran dan isi nominal.');
+      return;
+    }
+    setSavingAkrualManual(true);
+    const { error: rpcError } = await supabase.rpc('catat_akrual_komisi_manual', {
+      p_pendaftaran_id: akrualManualForm.pendaftaran_id,
+      p_nominal: nominal,
+    });
+    setSavingAkrualManual(false);
+    if (rpcError) {
+      setAkrualManualError(rpcError.message);
+      return;
+    }
+    setShowAkrualManual(false);
+    load();
+  }
+
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -235,9 +308,21 @@ export default function Komisi() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <h2 className="font-display font-semibold">Akrual &amp; Pencairan</h2>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="field rounded-md2 px-3 py-2 text-sm sm:w-56">
-          {STATUS_FILTER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="field rounded-md2 px-3 py-2 text-sm sm:w-56">
+            {STATUS_FILTER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          {canManage && (
+            <button
+              type="button"
+              onClick={openAkrualManual}
+              title="Untuk pendaftaran lama yang Aturan Komisi-nya baru dibuat belakangan"
+              className="text-xs font-semibold bg-accent-soft hover:bg-accent-soft-hover text-accent-text px-3 py-2 rounded-md2 whitespace-nowrap"
+            >
+              + Catat Akrual Manual
+            </button>
+          )}
+        </div>
       </div>
       <div className="card rounded-xl2 overflow-hidden">
         <div className="overflow-x-auto">
@@ -413,6 +498,50 @@ export default function Komisi() {
               {cairError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{cairError}</p>}
               <button type="submit" disabled={savingCair} className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
                 {savingCair ? 'Memproses...' : 'Cairkan komisi'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Catat Akrual Komisi Manual */}
+      {showAkrualManual && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(13,21,23,0.55)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setShowAkrualManual(false); }}>
+          <div className="card rounded-xl2 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-display text-lg font-semibold">Catat Akrual Manual</h2>
+              <button type="button" onClick={() => setShowAkrualManual(false)} aria-label="Tutup" className="text-xl">×</button>
+            </div>
+            <p className="text-xs text-ink-soft mb-5">
+              Untuk pendaftaran lama yang tidak dapat akrual otomatis karena Aturan Komisi-nya baru dibuat belakangan.
+            </p>
+            <form onSubmit={handleSubmitAkrualManual} className="space-y-4" noValidate>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Pendaftaran (Jamaah)</label>
+                <SearchSelect
+                  value={akrualManualForm.pendaftaran_id}
+                  onChange={pilihPendaftaranAkrual}
+                  fetchOptions={fetchPendaftaranUntukAkrual}
+                  placeholder="Ketik nama jamaah..."
+                  allowEmpty={false}
+                />
+                <p className="text-[11px] text-ink-soft mt-1">Cuma pendaftaran yang jamaahnya punya agen yang muncul di sini.</p>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nominal Komisi</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={akrualManualForm.nominal}
+                  onChange={(e) => setAkrualManualForm((f) => ({ ...f, nominal: formatRibuan(e.target.value) }))}
+                  className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm"
+                />
+                <p className="text-[11px] text-ink-soft mt-1">Terisi otomatis kalau ada Aturan Komisi yang cocok — bisa disesuaikan.</p>
+              </div>
+              {akrualManualError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{akrualManualError}</p>}
+              <button type="submit" disabled={savingAkrualManual} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2">
+                {savingAkrualManual ? 'Menyimpan...' : 'Catat akrual'}
               </button>
             </form>
           </div>
