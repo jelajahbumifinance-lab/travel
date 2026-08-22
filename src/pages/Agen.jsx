@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { rupiah } from '../lib/format';
 import { Pil, Aksi } from '../components/ui';
+import { StatTile, WARNA_STAT, IconUsers, IconCheckCircle } from '../components/StatTile';
 
 const JENIS_MITRA_LABEL = { INDIVIDU: 'Individu', PERUSAHAAN: 'Perusahaan' };
 
@@ -123,14 +124,8 @@ export default function Agen() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Total Agen</p>
-          <p className="tabular text-xl font-semibold mt-0.5">{ringkasan.total}</p>
-        </div>
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Aktif</p>
-          <p className="tabular text-xl font-semibold mt-0.5 text-teal-700">{ringkasan.aktif}</p>
-        </div>
+        <StatTile warna={WARNA_STAT.sky} Icon={IconUsers} label="Total Agen" value={ringkasan.total} />
+        <StatTile warna={WARNA_STAT.teal} Icon={IconCheckCircle} label="Aktif" value={ringkasan.aktif} />
       </div>
 
       {error && (

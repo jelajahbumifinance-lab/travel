@@ -5,8 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Century Gothic', 'Poppins', 'sans-serif'],
-        sans: ['Segoe UI', 'sans-serif'],
+        display: ['Poppins', 'Century Gothic', 'sans-serif'],
+        sans: ['Inter', 'Segoe UI', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
       },
       colors: {

@@ -49,13 +49,13 @@ html { font-size: 14px; }
 
 html, body, #root { height: 100%; }
 body {
-  font-family: 'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif;
   background: rgb(var(--paper));
   color: rgb(var(--ink));
   transition: background-color .2s ease, color .2s ease;
 }
 
-.font-display { font-family: 'Century Gothic', 'Segoe UI Semibold', sans-serif; font-weight: 700; letter-spacing: -0.01em; }
+.font-display { font-family: 'Poppins', 'Century Gothic', 'Segoe UI Semibold', sans-serif; font-weight: 700; letter-spacing: -0.01em; }
 .tabular { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
 
 .card {

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID, formatRibuan } from '../lib/format';
 import { Aksi, GrupAksi, Pil, StatusPil, STATUS_KOMISI } from '../components/ui';
 import SearchSelect from '../components/SearchSelect';
+import { StatTile, WARNA_STAT, IconClock, IconWallet } from '../components/StatTile';
 
 function todayISO() {
   const d = new Date();
@@ -186,14 +187,8 @@ export default function Komisi() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Total Akrual (belum cair)</p>
-          <p className="tabular text-xl font-semibold mt-0.5 text-orange-600">{rupiah(totalAkrual)}</p>
-        </div>
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Total Sudah Cair</p>
-          <p className="tabular text-xl font-semibold mt-0.5 text-teal-700">{rupiah(totalCair)}</p>
-        </div>
+        <StatTile warna={WARNA_STAT.orange} Icon={IconClock} label="Total Akrual (belum cair)" value={rupiah(totalAkrual)} />
+        <StatTile warna={WARNA_STAT.teal} Icon={IconWallet} label="Total Sudah Cair" value={rupiah(totalCair)} />
       </div>
 
       <div className="flex items-center justify-between mb-3">

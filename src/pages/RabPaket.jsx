@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID, formatRibuan } from '../lib/format';
 import { Aksi, GrupAksi, Pil } from '../components/ui';
 import SearchSelect from '../components/SearchSelect';
+import { StatTile, WARNA_STAT, IconWallet, IconTrendUp, IconTrendDown, IconTarget } from '../components/StatTile';
 
 function todayISO() {
   const d = new Date();
@@ -207,29 +208,20 @@ export default function RabPaket() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Tagihan Terkumpul</p>
-          <p className="tabular text-lg font-semibold mt-0.5">{rupiah(ringkasan.total_tagihan_terkumpul)}</p>
-        </div>
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Diterima (Kas Masuk)</p>
-          <p className="tabular text-lg font-semibold mt-0.5 text-teal-700">{rupiah(ringkasan.total_diterima)}</p>
-        </div>
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Total Anggaran RAB</p>
-          <p className="tabular text-lg font-semibold mt-0.5">{rupiah(ringkasan.total_anggaran)}</p>
-        </div>
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Realisasi Biaya</p>
-          <p className="tabular text-lg font-semibold mt-0.5 text-brick-600">{rupiah(ringkasan.total_realisasi_biaya)}</p>
+        <StatTile warna={WARNA_STAT.sky} Icon={IconWallet} label="Tagihan Terkumpul" value={rupiah(ringkasan.total_tagihan_terkumpul)} />
+        <StatTile warna={WARNA_STAT.teal} Icon={IconTrendUp} label="Diterima (Kas Masuk)" value={rupiah(ringkasan.total_diterima)} />
+        <StatTile warna={WARNA_STAT.orange} Icon={IconTarget} label="Total Anggaran RAB" value={rupiah(ringkasan.total_anggaran)} />
+        <StatTile warna={WARNA_STAT.brick} Icon={IconTrendDown} label="Realisasi Biaya" value={rupiah(ringkasan.total_realisasi_biaya)}>
           <div className="h-1.5 rounded-full bg-rule overflow-hidden mt-2">
             <div className={`h-full ${totalRealisasiPct > 90 ? 'bg-brick-500' : 'bg-accent'}`} style={{ width: `${totalRealisasiPct}%` }} />
           </div>
-        </div>
-        <div className="card rounded-xl2 p-4">
-          <p className="text-xs text-ink-soft font-medium">Margin Kas (Diterima − Realisasi)</p>
-          <p className={`tabular text-lg font-semibold mt-0.5 ${marginKas >= 0 ? 'text-teal-700' : 'text-brick-600'}`}>{rupiah(marginKas)}</p>
-        </div>
+        </StatTile>
+        <StatTile
+          warna={marginKas >= 0 ? WARNA_STAT.teal : WARNA_STAT.brick}
+          Icon={IconWallet}
+          label="Margin Kas (Diterima − Realisasi)"
+          value={rupiah(marginKas)}
+        />
       </div>
 
       <div className="flex items-center justify-between mb-3">

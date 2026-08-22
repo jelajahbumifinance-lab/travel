@@ -4,65 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID } from '../lib/format';
 import { StatusPil, STATUS_TRANSAKSI } from '../components/ui';
-
-// Palet kartu statistik bento — literal (bukan hasil string.replace()) supaya
-// terdeteksi static scanner Tailwind. Tiap warna sudah dipasangkan varian
-// dark: sendiri karena teal/moss/brick/orange bukan token CSS variable yang
-// otomatis ikut berganti mode gelap seperti --accent.
-const WARNA_STAT = {
-  teal: { bg: 'bg-teal-100 dark:bg-teal-800/40', text: 'text-teal-700 dark:text-teal-300' },
-  moss: { bg: 'bg-moss-100 dark:bg-moss-600/25', text: 'text-moss-600 dark:text-moss-500' },
-  brick: { bg: 'bg-brick-100 dark:bg-red-900/30', text: 'text-brick-600 dark:text-red-400' },
-  orange: { bg: 'bg-orange-100 dark:bg-orange-800/40', text: 'text-orange-600 dark:text-orange-300' },
-};
-
-function IconWallet({ className = 'w-5 h-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h11A2.5 2.5 0 0 1 19 7.5V9h1.5A1.5 1.5 0 0 1 22 10.5v6a1.5 1.5 0 0 1-1.5 1.5H5.5A2.5 2.5 0 0 1 3 15.5v-8Z" />
-      <circle cx="17" cy="13.5" r="1.3" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function IconTrendUp({ className = 'w-5 h-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M3 16l6-6 4 4 8-9" />
-      <path d="M15 5h6v6" />
-    </svg>
-  );
-}
-
-function IconTrendDown({ className = 'w-5 h-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M3 8l6 6 4-4 8 9" />
-      <path d="M15 19h6v-6" />
-    </svg>
-  );
-}
-
-function IconReceipt({ className = 'w-5 h-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" />
-      <path d="M9 8h6M9 12h6" />
-    </svg>
-  );
-}
-
-function StatTile({ warna, Icon, label, value }) {
-  return (
-    <div className="card rounded-xl2 p-5">
-      <div className={`w-10 h-10 rounded-xl2 flex items-center justify-center mb-3 ${warna.bg}`}>
-        <Icon className={`w-5 h-5 ${warna.text}`} />
-      </div>
-      <p className="text-xs text-ink-soft font-medium">{label}</p>
-      <p className="tabular text-2xl font-bold mt-1">{value}</p>
-    </div>
-  );
-}
+import { StatTile, WARNA_STAT, IconWallet, IconTrendUp, IconTrendDown, IconReceipt } from '../components/StatTile';
 
 const PERIOD_OPTIONS = [
   { value: 'THIS_MONTH', label: 'Bulan Ini' },
