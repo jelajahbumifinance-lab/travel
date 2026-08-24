@@ -1,15 +1,26 @@
 import { rupiah, tanggalID } from '../lib/format';
 import { terbilangRupiah } from '../lib/terbilang';
 
+const TEAL = '#0A6670';
+const TEAL_SOFT = '#D6F3F1';
+const INK = '#16232A';
+
 /**
  * Lembar kuitansi satu pembayaran (bukan rekap seluruh riwayat) — jamaah
  * biasanya minta bukti per setoran, bukan ringkasan sampai tanggal cetak.
  * Hanya muncul saat mencetak (hidden print:block), sama seperti slip lain
  * di aplikasi ini, supaya tidak mengganggu tampilan layar.
+ *
+ * Gaya kepala surat & tabel berwarna sengaja pakai warna solid inline
+ * (bukan cuma class Tailwind) + `.lembar-cetak *` di index.css yang
+ * memaksa `print-color-adjust: exact` — tanpa itu banyak browser diam-
+ * diam mencetak warna latar sebagai putih polos kecuali pengguna sendiri
+ * menyalakan "Print background graphics" di dialog cetaknya.
  */
 export default function Kuitansi({ data }) {
   if (!data) return null;
   const { noKuitansi, jamaahNama, paketNama, nominal, tanggal, totalTagihan, sisaSetelah } = data;
+  const lunas = Number(sisaSetelah) <= 0;
 
   return (
     <div className="hidden print:block text-black lembar-cetak" style={{ position: 'relative' }}>
@@ -20,70 +31,89 @@ export default function Kuitansi({ data }) {
         alt=""
         style={{
           position: 'absolute',
-          top: '50%',
+          top: '60%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '65%',
-          opacity: 0.07,
+          width: '58%',
+          opacity: 0.06,
           zIndex: 0,
           pointerEvents: 'none',
         }}
       />
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: '2px solid #000' }}>
-          <img src="/logo-icon.png" alt="" className="w-16 h-16 shrink-0" style={{ objectFit: 'contain' }} />
-          <div>
-            <p className="text-lg font-bold leading-tight">JELAJAH BUMI INTERNASIONAL</p>
-            <p className="text-xs text-gray-600 leading-tight">Ruko Manhattan Forum Blok B7 No. 16, The Green BSD, Serpong - Tangerang Selatan</p>
-            <p className="text-xs text-gray-600 leading-tight">jelajahbumigroup.com</p>
+
+      {/* Kepala surat */}
+      <div style={{ background: TEAL, color: '#fff', borderRadius: '0 0 28px 28px', padding: '20px 26px 30px', position: 'relative', zIndex: 1 }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div style={{ background: '#fff', borderRadius: '9999px', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <img src="/logo-icon.png" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
+            </div>
+            <span className="text-sm font-bold">JELAJAH BUMI INTERNASIONAL</span>
+          </div>
+          <div className="text-right text-xs">
+            <p>No. {noKuitansi}</p>
+            <p>{tanggalID(tanggal)}</p>
           </div>
         </div>
-        <h2 className="text-center text-xl font-bold mb-6 tracking-wide">KUITANSI PEMBAYARAN</h2>
-
-        <table className="w-full text-sm mb-6">
-          <tbody>
-            <tr><td className="py-1 w-40">No. Kuitansi</td><td className="py-1">: {noKuitansi}</td></tr>
-            <tr><td className="py-1">Nama Jamaah</td><td className="py-1">: {jamaahNama}</td></tr>
-            <tr><td className="py-1">Paket</td><td className="py-1">: {paketNama}</td></tr>
-            <tr><td className="py-1">Tanggal Bayar</td><td className="py-1">: {tanggalID(tanggal)}</td></tr>
-          </tbody>
-        </table>
-
-        <table className="w-full text-base border-collapse mb-2">
-          <tbody>
-            <tr className="font-bold">
-              <td className="border border-gray-400 p-3">JUMLAH DITERIMA</td>
-              <td className="border border-gray-400 p-3 text-right">{rupiah(nominal)}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="text-sm italic mb-6">Terbilang: {terbilangRupiah(nominal)}</p>
-
-        <table className="w-full text-sm border-collapse mb-8">
-          <tbody>
-            <tr>
-              <td className="border border-gray-400 p-2">Total Tagihan Paket</td>
-              <td className="border border-gray-400 p-2 text-right">{rupiah(totalTagihan)}</td>
-            </tr>
-            <tr className="font-bold">
-              <td className="border border-gray-400 p-2">{Number(sisaSetelah) <= 0 ? 'LUNAS' : 'SISA TAGIHAN'}</td>
-              <td className="border border-gray-400 p-2 text-right">{rupiah(Math.max(0, sisaSetelah))}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <p className="text-xs mb-10">
-          Kuitansi ini dicetak dari sistem dan sah tanpa tanda tangan basah. Bila ada selisih dengan
-          catatan Anda, hubungi admin keuangan JBI.
+        <h1 className="text-4xl font-bold mt-4 leading-none">Kuitansi.</h1>
+        <p className="text-[10px] mt-2" style={{ color: 'rgba(255,255,255,0.8)' }}>
+          Ruko Manhattan Forum Blok B7 No. 16, The Green BSD, Serpong - Tangerang Selatan · jelajahbumigroup.com
         </p>
+      </div>
 
-        <div className="flex justify-end text-sm mt-10">
-          <div className="text-center">
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Kartu info mengapung, menutup sedikit ujung bawah kepala surat */}
+        <div className="grid grid-cols-2 gap-4" style={{ marginTop: '-20px', padding: '0 2px' }}>
+          <div className="rounded-2xl p-4" style={{ background: '#fff', border: '1px solid #e5e5e5', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: TEAL }}>Diterima Dari</p>
+            <p className="text-sm font-bold mt-1">{jamaahNama}</p>
+            <p className="text-xs text-gray-600">Paket: {paketNama}</p>
+          </div>
+          <div className="rounded-2xl p-4" style={{ background: '#fff', border: '1px solid #e5e5e5', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: TEAL }}>Jumlah Diterima</p>
+            <p className="text-xl font-bold mt-1" style={{ color: TEAL }}>{rupiah(nominal)}</p>
+          </div>
+        </div>
+
+        <p className="text-sm italic mt-5 mb-4">Terbilang: {terbilangRupiah(nominal)}</p>
+
+        <table className="w-full text-sm border-collapse" style={{ borderSpacing: 0 }}>
+          <thead>
+            <tr style={{ background: INK, color: '#fff' }}>
+              <td className="p-3 rounded-l-md2">Keterangan</td>
+              <td className="p-3 text-right rounded-r-md2">Nominal</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ borderBottom: '1px solid #e5e5e5' }}>
+              <td className="p-3">Cicilan pembayaran — {paketNama}</td>
+              <td className="p-3 text-right">{rupiah(nominal)}</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #e5e5e5' }}>
+              <td className="p-3">Total Tagihan Paket</td>
+              <td className="p-3 text-right">{rupiah(totalTagihan)}</td>
+            </tr>
+            <tr style={{ background: TEAL_SOFT }}>
+              <td className="p-3 font-bold rounded-l-md2" style={{ color: TEAL }}>{lunas ? 'LUNAS' : 'SISA TAGIHAN'}</td>
+              <td className="p-3 text-right font-bold rounded-r-md2" style={{ color: TEAL }}>{rupiah(Math.max(0, sisaSetelah))}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="flex items-end justify-between mt-12">
+          <div className="rounded-2xl p-3" style={{ background: TEAL_SOFT, maxWidth: '58%' }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: TEAL }}>Catatan</p>
+            <p className="text-[10px]" style={{ color: TEAL }}>
+              Kuitansi ini dicetak dari sistem dan sah tanpa tanda tangan basah. Bila ada selisih dengan
+              catatan Anda, hubungi admin keuangan JBI.
+            </p>
+          </div>
+          <div className="text-center text-sm shrink-0">
             <p>Direktur</p>
             <img
               src="/ttd-direktur.png"
               alt="Tanda tangan Direktur"
-              style={{ height: '80px', margin: '4px auto', display: 'block', objectFit: 'contain' }}
+              style={{ height: '70px', margin: '4px auto', display: 'block', objectFit: 'contain' }}
             />
             <p className="font-semibold">Fauziah Salim Barabud</p>
           </div>

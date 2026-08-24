@@ -111,6 +111,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   body, main { background: #fff !important; color: #000 !important; }
   main { padding: 0 !important; max-width: none !important; }
   .card { box-shadow: none !important; border-color: #ccc !important; }
+
+  /* Kuitansi punya kartu warna (kepala surat, badge total) yang harus
+     ikut tercetak — tanpa ini browser diam-diam mencetaknya putih polos
+     kecuali pengguna sendiri menyalakan "Print background graphics". */
+  .lembar-cetak, .lembar-cetak * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
