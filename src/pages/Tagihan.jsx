@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { rupiah, tanggalID, formatRibuan } from '../lib/format';
 import { Aksi, GrupAksi, StatusPil, STATUS_PENDAFTARAN } from '../components/ui';
 import Kuitansi from '../components/Kuitansi';
+import KuitansiLunas from '../components/KuitansiLunas';
 import SearchSelect from '../components/SearchSelect';
 
 function todayISO() {
@@ -97,6 +98,7 @@ export default function Tagihan() {
   const [savingEditJamaah, setSavingEditJamaah] = useState(false);
 
   const [cetakData, setCetakData] = useState(null);
+  const [cetakRiwayatData, setCetakRiwayatData] = useState(null);
   const cetakTimer = useRef(null);
 
   const load = useCallback(async () => {
@@ -123,10 +125,10 @@ export default function Tagihan() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (!cetakData) return;
+    if (!cetakData && !cetakRiwayatData) return;
     cetakTimer.current = setTimeout(() => window.print(), 150);
     return () => clearTimeout(cetakTimer.current);
-  }, [cetakData]);
+  }, [cetakData, cetakRiwayatData]);
 
   // Dicari ke server tiap tanggal berganti (bukan disaring dari `rows`,
   // yang tidak punya info tanggal cicilan sama sekali — itu daftar
@@ -428,6 +430,7 @@ export default function Tagihan() {
 
   function cetakKuitansi(c) {
     const terbayarSebelum = historyRows.filter((x) => !x.is_void && x.tanggal <= c.tanggal && x.id !== c.id).reduce((s, x) => s + Number(x.nominal), 0);
+    setCetakRiwayatData(null);
     setCetakData({
       noKuitansi: c.no_kuitansi,
       jamaahNama: historyTarget.jamaah_nama,
@@ -436,6 +439,23 @@ export default function Tagihan() {
       tanggal: c.tanggal,
       totalTagihan: historyTarget.total_tagihan,
       sisaSetelah: historyTarget.total_tagihan - terbayarSebelum - Number(c.nominal),
+    });
+  }
+
+  // Kuitansi rekap — beda dari cetakKuitansi (per-setoran) di atas, ini
+  // merangkum SEMUA cicilan yang sudah dibayar (bukan void) dalam satu
+  // lembar. Cuma masuk akal dicetak setelah pendaftarannya LUNAS.
+  function cetakKuitansiLunas() {
+    setCetakData(null);
+    setCetakRiwayatData({
+      jamaahNama: historyTarget.jamaah_nama,
+      paketNama: historyTarget.paket_nama,
+      totalTagihan: historyTarget.total_tagihan,
+      rows: historyRows
+        .filter((c) => !c.is_void)
+        .slice()
+        .sort((a, b) => a.tanggal.localeCompare(b.tanggal))
+        .map((c) => ({ tanggal: c.tanggal, nominal: c.nominal, noKuitansi: c.no_kuitansi })),
     });
   }
 
@@ -821,6 +841,16 @@ export default function Tagihan() {
               <button type="button" onClick={() => setHistoryTarget(null)} aria-label="Tutup" className="text-xl">×</button>
             </div>
 
+            {historyTarget.computed_status === 'LUNAS' && (
+              <button
+                type="button"
+                onClick={cetakKuitansiLunas}
+                className="w-full mb-4 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 rounded-md2 text-sm"
+              >
+                Cetak Kuitansi Lunas (Semua Riwayat)
+              </button>
+            )}
+
             {historyError && (
               <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2 mb-3">{historyError}</p>
             )}
@@ -949,6 +979,7 @@ export default function Tagihan() {
       )}
 
       <Kuitansi data={cetakData} />
+      <KuitansiLunas data={cetakRiwayatData} />
     </div>
   );
 }
