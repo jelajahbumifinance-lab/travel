@@ -106,19 +106,33 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 @media print {
   @page { margin: 0; }
-  body { padding: 14mm 12mm !important; }
+  body { padding: 14mm 12mm !important; position: relative; }
   aside, header.md\:hidden { display: none !important; }
   body, main { background: #fff !important; color: #000 !important; }
   main { padding: 0 !important; max-width: none !important; }
   .card { box-shadow: none !important; border-color: #ccc !important; }
 
-  /* Kilau dekoratif tema kaca (.tema-kaca::before, lihat atas) — position:
-     fixed, ada di SETIAP halaman staf. Ternyata inilah biang halaman kedua
-     kosong ikut tercetak (bukan watermark kuitansi seperti dugaan awal):
-     elemen fixed dengan latar besar ini ikut masuk ke perhitungan
-     pemecahan halaman cetak, terlepas dari apakah tinggi konten yang
-     terlihat sudah pas satu halaman atau belum. */
   .tema-kaca::before { display: none !important; }
+
+  /* Halaman kedua kosong ikut tercetak bertahan lewat beberapa perbaikan
+     sebelumnya (watermark, lalu kilau dekoratif tema kaca) — jadi
+     dugaannya bukan satu elemen tertentu, tapi ADA elemen lain di
+     halaman (mis. bar breadcrumb atau sisa scroll dari isi non-cetak)
+     yang tidak sepenuhnya disembunyikan, jadi ikut menyumbang tinggi.
+     Daripada terus menebak elemen mana, dipakai pola paling baku untuk
+     "cetak cuma satu elemen ini": sembunyikan SEMUA hal lain lewat
+     visibility (bukan display, supaya .lembar-cetak yang direposisi di
+     bawah tidak ikut bergeser oleh ruang kosong bekas elemen lain), lalu
+     tampilkan ulang cuma .lembar-cetak dan pindahkan ke pojok kiri-atas
+     halaman terlepas dari posisi aslinya di DOM/scroll. */
+  body * { visibility: hidden !important; }
+  .lembar-cetak, .lembar-cetak * { visibility: visible !important; }
+  .lembar-cetak {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+  }
 
   /* Kuitansi punya kartu warna (kepala surat, badge total) yang harus
      ikut tercetak — tanpa ini browser diam-diam mencetaknya putih polos
