@@ -80,9 +80,12 @@ export default function Kuitansi({ data }) {
         <div className="flex justify-end text-xs mt-10">
           <div className="text-center">
             <p>Direktur</p>
-            <br /><br /><br />
-            <p>(________________________)</p>
-            <p className="mt-1">Fauziah Salim Barabud</p>
+            <img
+              src="/ttd-direktur.png"
+              alt="Tanda tangan Direktur"
+              style={{ height: '70px', margin: '4px auto', display: 'block', objectFit: 'contain' }}
+            />
+            <p className="font-semibold">Fauziah Salim Barabud</p>
           </div>
         </div>
       </div>
