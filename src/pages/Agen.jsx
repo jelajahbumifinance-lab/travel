@@ -25,6 +25,16 @@ export default function Agen() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Tambah agen manual — dulu cuma bisa lewat halaman Undang Staf (menu
+  // terpisah, "Sistem & Pengawasan"), gampang tidak ketemu kalau yang
+  // dicari memang "tambah agen". Modalnya di sini cuma memanggil fungsi
+  // yang sama (invite-staff) dengan role dikunci ke 'agen'.
+  const [showTambah, setShowTambah] = useState(false);
+  const [tambahForm, setTambahForm] = useState({ full_name: '', email: '' });
+  const [tambahError, setTambahError] = useState('');
+  const [tambahSubmitting, setTambahSubmitting] = useState(false);
+  const [tambahResult, setTambahResult] = useState(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -116,11 +126,55 @@ export default function Agen() {
     load();
   }
 
+  function openTambah() {
+    setTambahForm({ full_name: '', email: '' });
+    setTambahError('');
+    setTambahResult(null);
+    setShowTambah(true);
+  }
+
+  async function handleSubmitTambah(e) {
+    e.preventDefault();
+    setTambahError('');
+    if (!tambahForm.full_name.trim() || !tambahForm.email.trim()) {
+      setTambahError('Nama dan email wajib diisi.');
+      return;
+    }
+    setTambahSubmitting(true);
+    const { data, error: fnError } = await supabase.functions.invoke('invite-staff', {
+      body: { email: tambahForm.email.trim(), full_name: tambahForm.full_name.trim(), role: 'agen' },
+    });
+    setTambahSubmitting(false);
+    if (fnError) {
+      let msg = fnError.message;
+      try {
+        const body = await fnError.context.json();
+        if (body?.error) msg = body.error;
+      } catch (_) { /* biarkan msg default */ }
+      setTambahError(msg);
+      return;
+    }
+    setTambahResult(data);
+    setTambahForm({ full_name: '', email: '' });
+    load();
+  }
+
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold">Agen &amp; Mitra</h1>
-        <p className="text-ink-soft text-sm mt-1">Semua agen yang terdaftar — baik lewat pendaftaran mandiri maupun Undang Staf.</p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">Agen &amp; Mitra</h1>
+          <p className="text-ink-soft text-sm mt-1">Semua agen yang terdaftar — baik lewat pendaftaran mandiri maupun ditambahkan staf.</p>
+        </div>
+        {canManage && (
+          <button
+            type="button"
+            onClick={openTambah}
+            className="bg-accent hover:bg-accent-hover text-white font-semibold py-2 px-4 rounded-md2 text-sm whitespace-nowrap"
+          >
+            + Tambah Agen
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
@@ -272,6 +326,50 @@ export default function Agen() {
                 )}
               </form>
             </fieldset>
+          </div>
+        </div>
+      )}
+
+      {showTambah && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(13,21,23,0.55)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setShowTambah(false); }}>
+          <div className="card rounded-xl2 w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-display text-lg font-semibold">Tambah Agen</h2>
+              <button type="button" onClick={() => setShowTambah(false)} aria-label="Tutup" className="text-xl">×</button>
+            </div>
+
+            {tambahResult ? (
+              <div>
+                <p className="text-sm font-semibold text-teal-700 mb-2">Akun agen berhasil dibuat!</p>
+                <p className="text-xs text-ink-soft mb-3">
+                  Bagikan informasi ini ke agen yang bersangkutan (mis. lewat WhatsApp) supaya bisa login — profil lengkapnya (rekening, NIK, dll.) bisa diisi belakangan lewat "Profil Saya" di portal agen.
+                </p>
+                <div className="bg-paper rounded-md2 p-4 space-y-1.5 border border-rule mb-4">
+                  <p className="text-sm"><span className="text-ink-soft">Email:</span> <span className="tabular font-semibold">{tambahResult.email}</span></p>
+                  <p className="text-sm"><span className="text-ink-soft">Password sementara:</span> <span className="tabular font-semibold">{tambahResult.temp_password}</span></p>
+                </div>
+                <button type="button" onClick={() => setShowTambah(false)} className="w-full bg-accent hover:bg-accent-hover text-white font-semibold py-2.5 rounded-md2 text-sm">
+                  Tutup
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitTambah} className="space-y-4" noValidate>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Nama Lengkap</label>
+                  <input type="text" value={tambahForm.full_name} onChange={(e) => setTambahForm((f) => ({ ...f, full_name: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-ink-soft block mb-1.5">Email</label>
+                  <input type="email" value={tambahForm.email} onChange={(e) => setTambahForm((f) => ({ ...f, email: e.target.value }))} className="field w-full rounded-md2 px-4 py-2.5 text-sm" />
+                  <p className="text-[11px] text-ink-soft mt-1">Dipakai agen untuk login — akun langsung aktif, tidak perlu persetujuan lagi.</p>
+                </div>
+                {tambahError && <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{tambahError}</p>}
+                <button type="submit" disabled={tambahSubmitting} className="w-full bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold py-2.5 rounded-md2 text-sm">
+                  {tambahSubmitting ? 'Membuat akun...' : 'Buat akun agen'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

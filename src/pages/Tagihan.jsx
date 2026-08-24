@@ -92,7 +92,7 @@ export default function Tagihan() {
   // ini tidak ada cara membetulkan data jamaah sama sekali setelah
   // didaftarkan, termasuk mengisi jenis_kelamin untuk jamaah lama.
   const [editJamaahTarget, setEditJamaahTarget] = useState(null); // baris v_pendaftaran_status
-  const [editJamaahForm, setEditJamaahForm] = useState({ nama: '', nik: '', no_hp: '', jenis_kelamin: '' });
+  const [editJamaahForm, setEditJamaahForm] = useState({ nama: '', nik: '', no_hp: '', jenis_kelamin: '', total_tagihan: '', jatuh_tempo_berikutnya: '' });
   const [editJamaahError, setEditJamaahError] = useState('');
   const [savingEditJamaah, setSavingEditJamaah] = useState(false);
 
@@ -361,6 +361,8 @@ export default function Tagihan() {
       nik: row.jamaah_nik || '',
       no_hp: row.jamaah_no_hp || '',
       jenis_kelamin: row.jamaah_jenis_kelamin || '',
+      total_tagihan: formatRibuan(String(row.total_tagihan || '')),
+      jatuh_tempo_berikutnya: row.jatuh_tempo_berikutnya || '',
     });
     setEditJamaahError('');
   }
@@ -372,8 +374,13 @@ export default function Tagihan() {
       setEditJamaahError('Nama wajib diisi.');
       return;
     }
+    const totalTagihanBaru = Number(String(editJamaahForm.total_tagihan).replace(/\D/g, ''));
+    if (!totalTagihanBaru) {
+      setEditJamaahError('Total tagihan wajib diisi.');
+      return;
+    }
     setSavingEditJamaah(true);
-    const { error: err } = await supabase
+    const { error: jamaahErr } = await supabase
       .from('jamaah')
       .update({
         nama: editJamaahForm.nama.trim(),
@@ -382,9 +389,25 @@ export default function Tagihan() {
         jenis_kelamin: editJamaahForm.jenis_kelamin || null,
       })
       .eq('id', editJamaahTarget.jamaah_id);
+    if (jamaahErr) {
+      setSavingEditJamaah(false);
+      setEditJamaahError(jamaahErr.message);
+      return;
+    }
+    // Total tagihan & jatuh tempo bukan data jamaah, tapi data pendaftarannya
+    // ke paket ini (satu jamaah bisa terdaftar ke lebih dari satu paket
+    // dengan harga beda-beda) — makanya di-update lewat editJamaahTarget.id
+    // (id baris pendaftaran), bukan jamaah_id.
+    const { error: pendaftaranErr } = await supabase
+      .from('pendaftaran')
+      .update({
+        total_tagihan: totalTagihanBaru,
+        jatuh_tempo_berikutnya: editJamaahForm.jatuh_tempo_berikutnya || null,
+      })
+      .eq('id', editJamaahTarget.id);
     setSavingEditJamaah(false);
-    if (err) {
-      setEditJamaahError(err.message);
+    if (pendaftaranErr) {
+      setEditJamaahError(pendaftaranErr.message);
       return;
     }
     setEditJamaahTarget(null);
@@ -887,6 +910,28 @@ export default function Tagihan() {
                   <option value="L">Laki-laki</option>
                   <option value="P">Perempuan</option>
                 </select>
+              </div>
+              <div className="pt-2 border-t border-rule">
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Total Tagihan (paket ini)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={editJamaahForm.total_tagihan}
+                  onChange={(e) => setEditJamaahForm((f) => ({ ...f, total_tagihan: formatRibuan(e.target.value) }))}
+                  className="field tabular w-full rounded-md2 px-4 py-2.5 text-sm"
+                />
+                <p className="text-[11px] text-ink-soft mt-1">
+                  Sudah terbayar {rupiah(editJamaahTarget.terbayar)} — kalau total baru diturunkan sampai di bawah itu, jamaah akan otomatis tercatat Lunas.
+                </p>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-ink-soft block mb-1.5">Jatuh Tempo Cicilan Berikutnya (opsional)</label>
+                <input
+                  type="date"
+                  value={editJamaahForm.jatuh_tempo_berikutnya}
+                  onChange={(e) => setEditJamaahForm((f) => ({ ...f, jatuh_tempo_berikutnya: e.target.value }))}
+                  className="field w-full rounded-md2 px-4 py-2.5 text-sm"
+                />
               </div>
               {editJamaahError && (
                 <p className="text-xs font-semibold text-brick-600 bg-brick-100 rounded-md2 px-3 py-2">{editJamaahError}</p>

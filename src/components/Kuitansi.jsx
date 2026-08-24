@@ -13,10 +13,14 @@ export default function Kuitansi({ data }) {
 
   return (
     <div className="hidden print:block text-black lembar-cetak">
-      <div className="text-center mb-6">
-        <h2 className="text-lg font-bold">KUITANSI PEMBAYARAN</h2>
-        <p className="text-sm">Jelajah Bumi Internasional</p>
+      <div className="flex items-center gap-3 mb-4 pb-3" style={{ borderBottom: '2px solid #000' }}>
+        <img src="/logo-icon.png" alt="" className="w-12 h-12 shrink-0" style={{ objectFit: 'contain' }} />
+        <div>
+          <p className="text-sm font-bold leading-tight">JELAJAH BUMI INTERNASIONAL</p>
+          <p className="text-[10px] text-gray-600 leading-tight">jelajahbumigroup.com</p>
+        </div>
       </div>
+      <h2 className="text-center text-base font-bold mb-5 tracking-wide">KUITANSI PEMBAYARAN</h2>
 
       <table className="w-full text-xs mb-5">
         <tbody>
