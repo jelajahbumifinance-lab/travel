@@ -112,6 +112,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   main { padding: 0 !important; max-width: none !important; }
   .card { box-shadow: none !important; border-color: #ccc !important; }
 
+  /* Kilau dekoratif tema kaca (.tema-kaca::before, lihat atas) — position:
+     fixed, ada di SETIAP halaman staf. Ternyata inilah biang halaman kedua
+     kosong ikut tercetak (bukan watermark kuitansi seperti dugaan awal):
+     elemen fixed dengan latar besar ini ikut masuk ke perhitungan
+     pemecahan halaman cetak, terlepas dari apakah tinggi konten yang
+     terlihat sudah pas satu halaman atau belum. */
+  .tema-kaca::before { display: none !important; }
+
   /* Kuitansi punya kartu warna (kepala surat, badge total) yang harus
      ikut tercetak — tanpa ini browser diam-diam mencetaknya putih polos
      kecuali pengguna sendiri menyalakan "Print background graphics". */
