@@ -23,15 +23,20 @@ export default function Kuitansi({ data }) {
   const lunas = Number(sisaSetelah) <= 0;
 
   return (
-    <div className="hidden print:block text-black lembar-cetak" style={{ position: 'relative' }}>
+    <div className="hidden print:block text-black lembar-cetak">
       {/* Watermark logo transparan di tengah — supaya tidak gampang dipalsukan
-          dengan cara diedit ulang di editor gambar/dokumen biasa. */}
+          dengan cara diedit ulang di editor gambar/dokumen biasa. `position:
+          fixed` (bukan `absolute`) sengaja dipakai — versi absolute sempat
+          bikin halaman kosong kedua tercetak, karena elemen absolute yang
+          diposisikan pakai persentase ikut mempengaruhi perhitungan tinggi
+          halaman cetak di beberapa browser; fixed dijangkarkan ke viewport
+          halaman, bukan ke tinggi konten, jadi tidak kena masalah itu. */}
       <img
         src="/logo-icon.png"
         alt=""
         style={{
-          position: 'absolute',
-          top: '60%',
+          position: 'fixed',
+          top: '55%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '58%',

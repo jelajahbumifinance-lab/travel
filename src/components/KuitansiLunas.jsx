@@ -23,13 +23,15 @@ export default function KuitansiLunas({ data }) {
   const totalDibayar = rows.reduce((s, r) => s + Number(r.nominal), 0);
 
   return (
-    <div className="hidden print:block text-black lembar-cetak" style={{ position: 'relative' }}>
+    <div className="hidden print:block text-black lembar-cetak">
+      {/* position:fixed (bukan absolute) — lihat catatan di Kuitansi.jsx,
+          absolute sempat bikin halaman kosong kedua ikut tercetak. */}
       <img
         src="/logo-icon.png"
         alt=""
         style={{
-          position: 'absolute',
-          top: '60%',
+          position: 'fixed',
+          top: '55%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '58%',
